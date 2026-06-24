@@ -9,9 +9,10 @@
 
 ## Active State
 
-- **Current version**: v1.1 in ontwikkeling.
-- **Laatste werk**: mappen/projecten toevoegen aan de sidebar, fixed-height transcriptveld, optionele map-koppeling voor vergaderingen.
-- **In-flight plan**: `PLAN_mappen_en_ui_24_06_2026.md`.
+- **Current version**: v1.1 live.
+- **Laatste werk**: mappen/projecten toegevoegd aan de sidebar, fixed-height transcriptveld, optionele map-koppeling voor vergaderingen.
+- **Git**: repo gepusht naar `https://github.com/jellearts/notulist-pro`.
+- **Plan**: `PLAN_mappen_en_ui_24_06_2026.md` is gearchiveerd in `archive/`.
 
 ## Architectural Pitfalls
 
