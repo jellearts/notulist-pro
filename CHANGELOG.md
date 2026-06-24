@@ -1,0 +1,24 @@
+---
+# CHANGELOG.md - Notulist-Pro
+**Context**: Part of the federated server structure located at `/config/workspace/Def Apps/Notulist-Pro/`. Generated from `/config/workspace/templates/project-context/CHANGELOG.md`.
+**Relationship**: Guided by root `/config/workspace/CHANGELOG.md` and `/config/workspace/Def Apps/CHANGELOG.md`. Interacts closely with the other 4 local context files.
+**Purpose**: Append-only chronological history of changes, releases and operational events for Notulist-Pro.
+---
+
+# Notulist-Pro — CHANGELOG.md
+
+## 2026-06-24 — Federated context onboarding
+- Project context files toegevoegd vanuit `/config/workspace/templates/project-context/`.
+- Notulist-Pro geregistreerd in `/config/workspace/scripts/check_federated_context.sh`.
+
+## 2026-06-24 — v1.1 plan aangemaakt
+- Plan `PLAN_mappen_en_ui_24_06_2026.md` aangemaakt voor mappen/projecten, fixed transcriptveld, en optionele map-koppeling.
+
+## 2026-06-24 — v1.1 released
+- Vergaderingen kunnen worden gegroepeerd in mappen/projecten in de sidebar.
+- Nieuwe mappen aanmaken, hernoemen en verwijderen via het zijmenu.
+- Optionele map-koppeling per vergadering, zowel vooraf als achteraf instelbaar.
+- Transcript-invoerveld heeft vaste hoogte en scrollt in plaats van mee uit te rekken.
+- Datamodel uitgebreid met `folders` en `folderId`; backward-compatible migratie via `ensureDataShape`.
+- Federated context files toegevoegd en Notulist-Pro geregistreerd in de workspace audit.
+- Plan `PLAN_mappen_en_ui_24_06_2026.md` gearchiveerd.

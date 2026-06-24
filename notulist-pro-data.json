@@ -1,0 +1,10 @@
+{
+  "meetings": [],
+  "instellingen": {
+    "defgptEndpoint": "https://pro.defgpt.data.mindef.nl/api/chat/completions",
+    "defgptKey": "",
+    "defgptModel": "DefGPT-Chat-gpt-oss-120b",
+    "maxTokens": 4000,
+    "transcriptMaxChars": 120000
+  }
+}

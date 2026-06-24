@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Notulist-Pro v1.1</title>
+  <!--
+  ╔══════════════════════════════════════════════════════════════════╗
+  ║  NOTULIST-PRO — CHANGELOG                                          ║
+  ╠══════════════════════════════════════════════════════════════════╣
+  ║  v1.1 — 2026-06-24  MAPPEN, FIXED TRANSCRIPT, MAP-KEUZE            ║
+  ║  • Vergaderingen groeperen in mappen/projecten in de sidebar.     ║
+  ║  • Mappen aanmaken, hernoemen en verwijderen in het zijmenu.      ║
+  ║  • Optionele map-koppeling vooraf én achteraf per vergadering.    ║
+  ║  • Transcript-invoerveld heeft vaste hoogte en scrollt.          ║
+  ║  v1.0 — 2026-06-22  EERSTE VERSIE                                  ║
+  ║  • Transcript (.txt/.vtt/.srt/.md) uploaden of plakken per         ║
+  ║    vergadering.                                                    ║
+  ║  • Verslag genereren via DefGPT (API) met CORS-fallback:          ║
+  ║    bij een geblokkeerde browser-call kun je de prompt kopiëren,   ║
+  ║    in DefGPT plakken en het antwoord terugplakken.                ║
+  ║  • Vergaderingen ordenen in het zijmenu (sorteer op datum).       ║
+  ║  • Verslag wordt als HTML weergegeven en is direct in de          ║
+  ║    weergave bewerkbaar (besluiten, acties, alles).                ║
+  ║  • Instelbare verslag-prompt en system-prompt in instellingen,    ║
+  ║    met placeholders {{TRANSCRIPT}}, {{NAAM}}, {{DATUM}}.           ║
+  ║  • Model instelbaar (oss-120b standaard, gemma-4-31B optie).      ║
+  ║  • Opslag via File System Access naar een gekozen .json-bestand   ║
+  ║    (mag op een netwerkschijf staan). Export/backup ingebouwd.     ║
+  ║  • Verslag los exporteren als standalone .html.                   ║
+  ║  Backward compatible: oude data zonder folders wordt automatisch   ║
+  ║  gemigreerd via ensureDataShape.                                  ║
+  ╚══════════════════════════════════════════════════════════════════╝
+  Offline: react.min.js, react-dom.min.js, babel.min.js in dezelfde map.
+  -->
+  <script src="react.min.js"></script>
+  <script src="react-dom.min.js"></script>
+  <script src="babel.min.js"></script>
+  <style>
+    :root{--primary:#1B3A5C;--primary-light:#2E75B6;--success:#059669;--warning:#D97706;--danger:#DC2626;--info:#0EA5E9;--purple:#7C3AED;--bg:#F8FAFC;--surface:#FFFFFF;--muted:#F1F5F9;--border:#E2E8F0;--text:#1B3A5C;--text-secondary:#64748B;--text-muted:#94A3B8;--radius-sm:6px;--radius:10px;--radius-lg:14px;--shadow:0 1px 3px rgba(0,0,0,.06);--shadow-md:0 4px 8px rgba(0,0,0,.08);}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter','Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased;}
+    input,select,textarea,button{font-family:inherit;}
+    ::-webkit-scrollbar{width:7px;height:7px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:4px;}::-webkit-scrollbar-thumb:hover{background:#94A3B8;}
+    .btn-hover{transition:all .15s;}.btn-hover:hover{filter:brightness(1.07);}.btn-hover:active{transform:scale(.98);}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-light);box-shadow:0 0 0 3px rgba(46,117,182,.15);}
+    textarea{resize:vertical;}
+    .hover-card{transition:box-shadow .15s,transform .15s;}.hover-card:hover{box-shadow:var(--shadow-md);}
+    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}.pulse{animation:pulse 1.2s infinite;}
+    .report-view h1{font-size:22px;border-bottom:2px solid var(--primary);padding-bottom:8px;margin:18px 0 14px;}
+    .report-view h2{font-size:17px;margin:22px 0 8px;color:var(--primary);}
+    .report-view h3{font-size:14px;margin:16px 0 5px;color:#334155;}
+    .report-view h4{font-size:13px;margin:12px 0 4px;color:#475569;}
+    .report-view p{margin:0 0 10px;}
+    .report-view ul{margin:8px 0 12px 20px;}
+    .report-view li{margin:2px 0;}
+    .report-view table{border-collapse:collapse;width:100%;margin:12px 0;font-size:13px;}
+    .report-view th,.report-view td{border:1px solid #CBD5E1;padding:8px;text-align:left;vertical-align:top;}
+    .report-view th{background:#F1F5F9;font-weight:600;}
+    .report-view[contenteditable="true"]{outline:2px solid var(--primary-light);outline-offset:4px;border-radius:6px;}
+  </style>
+</head>
+<body>
+<div id="root"><div style="font-family:sans-serif;text-align:center;padding:60px 20px;color:#64748B"><div style="font-size:20px;font-weight:700;color:#1B3A5C;margin-bottom:10px">Notulist-Pro v1.0</div><div>Laden...</div></div></div>
+<script>
+window.onerror=function(msg,src,line,col,err){document.getElementById("root").innerHTML='<div style="font-family:sans-serif;text-align:center;padding:60px 20px;color:#DC2626"><div style="font-size:20px;font-weight:700;margin-bottom:10px">JavaScript Fout</div><div>'+msg+'</div><div style="font-size:12px;color:#94A3B8;margin-top:10px">Regel '+line+'</div></div>';return false;};
+</script>
+<script type="text/babel">
+const{useState,useEffect,useLayoutEffect,useCallback,useMemo,useRef}=React;
+const APP_VERSION="1.1";
+
+// ─── FILE SYSTEM ACCESS (patroon uit MeetingHero) ────
+const IDB_NAME="notulist-pro-v1-fs";
+function openIdb(){return new Promise((ok,fail)=>{const r=indexedDB.open(IDB_NAME,1);r.onupgradeneeded=()=>{r.result.createObjectStore("handles");};r.onsuccess=()=>ok(r.result);r.onerror=()=>fail(r.error);});}
+async function getStoredHandle(){try{const db=await openIdb();return new Promise(res=>{const tx=db.transaction("handles","readonly");const r=tx.objectStore("handles").get("dataFile");r.onsuccess=()=>res(r.result||null);r.onerror=()=>res(null);});}catch{return null;}}
+async function storeHandle(h){try{const db=await openIdb();return new Promise(res=>{const tx=db.transaction("handles","readwrite");tx.objectStore("handles").put(h,"dataFile");tx.oncomplete=()=>res();tx.onerror=()=>res();});}catch{}}
+function fsSupported(){return typeof window.showOpenFilePicker==="function"&&typeof window.showSaveFilePicker==="function";}
+async function selectDataFile(){try{const[handle]=await window.showOpenFilePicker({types:[{description:"JSON Data",accept:{"application/json":[".json"]}}],startIn:"documents"});await storeHandle(handle);const file=await handle.getFile();const text=await file.text();if(!text.trim()){const w=await handle.createWritable();await w.write(JSON.stringify(getDefaultData(),null,2));await w.close();}return true;}catch(e){if(e.name!=="AbortError")console.error(e);return false;}}
+async function createDataFile(){try{const handle=await window.showSaveFilePicker({suggestedName:"notulist-pro-data.json",types:[{description:"JSON Data",accept:{"application/json":[".json"]}}],startIn:"documents"});await storeHandle(handle);const w=await handle.createWritable();await w.write(JSON.stringify(getDefaultData(),null,2));await w.close();return true;}catch(e){if(e.name!=="AbortError")console.error(e);return false;}}
+async function ensurePermission(h){const opts={mode:"readwrite"};if((await h.queryPermission(opts))==="granted")return true;return(await h.requestPermission(opts))==="granted";}
+async function readData(){const h=await getStoredHandle();if(!h)return null;if(!(await ensurePermission(h)))return null;const file=await h.getFile();const data=ensureDataShape(JSON.parse(await file.text()));data.__mtime=file.lastModified;return data;}
+async function writeData(data){const h=await getStoredHandle();if(!h)throw new Error("Geen databestand gekoppeld");await ensurePermission(h);const out={...data};delete out.__mtime;const w=await h.createWritable();await w.write(JSON.stringify(out,null,2));await w.close();try{const f=await h.getFile();return f.lastModified;}catch{return Date.now();}}
+async function getFileMtime(){const h=await getStoredHandle();if(!h)return null;try{const f=await h.getFile();return f.lastModified;}catch{return null;}}
+async function fileName(){const h=await getStoredHandle();return h?h.name:null;}
+async function exportBackup(){const d=await readData();if(!d)return;delete d.__mtime;const blob=new Blob([JSON.stringify(d,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="notulist-pro-backup-"+new Date().toISOString().split("T")[0]+".json";a.click();URL.revokeObjectURL(url);}
+
+// ─── UTILITIES ───────────────────────────────────────
+function uid(){return Date.now()+"-"+Math.random().toString(36).slice(2,7);}
+function todayISO(){return new Date().toISOString().split("T")[0];}
+function fmtDatum(iso){if(!iso)return"–";const[y,m,d]=iso.split("-");return`${d}-${m}-${y}`;}
+function fmtDatumKort(iso){if(!iso)return"–";const[y,m,d]=iso.split("-");const mnd=["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];return`${parseInt(d)} ${mnd[parseInt(m)-1]} ${y.slice(2)}`;}
+function escapeHtml(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+// ─── MARKDOWN -> HTML (patroon uit MeetingHero) ──────
+function renderMarkdown(md){
+  if(!md)return "";
+  let html=md.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  html=html.replace(/^###### (.*)$/gm,"<h6>$1</h6>");
+  html=html.replace(/^##### (.*)$/gm,"<h5>$1</h5>");
+  html=html.replace(/^#### (.*)$/gm,"<h4>$1</h4>");
+  html=html.replace(/^### (.*)$/gm,"<h3>$1</h3>");
+  html=html.replace(/^## (.*)$/gm,"<h2>$1</h2>");
+  html=html.replace(/^# (.*)$/gm,"<h1>$1</h1>");
+  html=html.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>");
+  html=html.replace(/\*(.+?)\*/g,"<em>$1</em>");
+  const lines=html.split("\n");
+  let out=[];let inTable=false;let rows=[];
+  function flushTable(){
+    const dataRows=rows.filter(r=>!r.every(c=>/^[-:]+$/.test(c)));
+    if(dataRows.length){
+      let tbl="<table>";
+      tbl+="<thead><tr>"+dataRows[0].map(c=>`<th>${c}</th>`).join("")+"</tr></thead>";
+      if(dataRows.length>1){tbl+="<tbody>"+dataRows.slice(1).map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")+"</tbody>";}
+      tbl+="</table>";out.push(tbl);
+    }
+    inTable=false;rows=[];
+  }
+  for(let line of lines){
+    if(/^\|(.+)\|$/.test(line)){const cells=line.split("|").slice(1,-1).map(c=>c.trim());if(!inTable){inTable=true;rows=[];}rows.push(cells);}
+    else{if(inTable)flushTable();out.push(line);}
+  }
+  if(inTable)flushTable();
+  html=out.join("\n");
+  html=html.replace(/^\s*[-*]\s+(.+)$/gm,"<li>$1</li>");
+  html=html.replace(/(<li>[\s\S]*?<\/li>\n?)+/g,match=>`<ul>${match}</ul>`);
+  html=html.replace(/\n\n+/g,"</p><p>");
+  html=html.replace(/\n/g,"<br/>");
+  html=`<div>${html}</div>`;
+  html=html.replace(/<div>([\s\S]*?)<\/div>/,(m,inner)=>{
+    const parts=inner.split("</p><p>").map(p=>{
+      p=p.trim();if(!p)return "";
+      if(/^<(h[1-6]|ul|table|pre|blockquote)/.test(p)||p.endsWith("</li>")||p.endsWith("</ul>")||p.endsWith("</table>")||p.endsWith("</blockquote>")||p.endsWith("</h1>")||p.endsWith("</h2>")||p.endsWith("</h3>")||p.endsWith("</h4>"))return p;
+      return `<p>${p}</p>`;
+    });
+    return parts.join("");
+  });
+  return html;
+}
+function reportHtml(meeting){
+  if(meeting.verslagHtml&&meeting.verslagHtml.trim())return meeting.verslagHtml;
+  if(meeting.verslagMd&&meeting.verslagMd.trim())return renderMarkdown(meeting.verslagMd);
+  return "";
+}
+function exportVerslagHTML(meeting){
+  const inner=reportHtml(meeting);
+  const html=`<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"><title>Vergaderverslag ${escapeHtml(meeting.naam)}</title><style>body{font-family:Calibri,Arial,sans-serif;max-width:900px;margin:40px auto;color:#1B3A5C;line-height:1.6;padding:0 20px}h1{font-size:24px;border-bottom:2px solid #1B3A5C;padding-bottom:8px;margin-bottom:16px}h2{font-size:18px;margin-top:24px;margin-bottom:10px;color:#1B3A5C}h3{font-size:15px;margin-top:18px;margin-bottom:6px;color:#334155}h4{font-size:14px;margin-top:14px;margin-bottom:4px;color:#475569}.meta{color:#64748B;font-size:13px;margin-bottom:24px}table{border-collapse:collapse;width:100%;margin:12px 0;font-size:13px}th,td{border:1px solid #CBD5E1;padding:8px;text-align:left;vertical-align:top}th{background:#F1F5F9;font-weight:600}ul{margin:8px 0 12px 18px;padding:0}p{margin:0 0 10px 0}</style></head><body><h1>Vergaderverslag: ${escapeHtml(meeting.naam)}</h1><div class="meta">Datum: ${fmtDatum(meeting.datum)}</div>${inner}</body></html>`;
+  const blob=new Blob([html],{type:"text/html;charset=utf-8;"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="verslag-"+(meeting.naam||"vergadering").slice(0,40).replace(/[^a-zA-Z0-9]/g,"-")+"-"+meeting.datum+".html";a.click();URL.revokeObjectURL(url);
+}
+
+// ─── DEFGPT ──────────────────────────────────────────
+const DEFGPT_LOG=[];
+function logDefGPT(entry){DEFGPT_LOG.unshift(entry);if(DEFGPT_LOG.length>50)DEFGPT_LOG.length=50;}
+async function callDefGPT(endpoint,key,model,systemPrompt,userPrompt,maxTokens,temperature){
+  const logEntry={ts:new Date().toLocaleTimeString("nl-NL",{hour12:false}),status:"bezig",endpoint,model,promptLen:userPrompt.length,rawResponse:"",fout:"",duurMs:0};
+  const start=Date.now();
+  try{
+    const body=JSON.stringify({model:model||"DefGPT-Chat-gpt-oss-120b",messages:[{role:"system",content:systemPrompt},{role:"user",content:userPrompt}],temperature:temperature==null?0.3:temperature,max_tokens:maxTokens||4000});
+    const response=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${key}`},body});
+    if(!response.ok){const errText=await response.text().catch(()=>"");logEntry.status=`HTTP ${response.status}`;logEntry.fout=errText.slice(0,500);logEntry.duurMs=Date.now()-start;logDefGPT(logEntry);throw new Error(`HTTP ${response.status}: ${errText.slice(0,200)}`);}
+    const data=await response.json();
+    const content=data.choices?.[0]?.message?.content||"";
+    logEntry.status="ok";logEntry.rawResponse=content.slice(0,2000);logEntry.duurMs=Date.now()-start;logDefGPT(logEntry);
+    return content;
+  }catch(e){
+    if(!logEntry.fout){logEntry.status="fout";logEntry.fout=e.message;logEntry.duurMs=Date.now()-start;logDefGPT(logEntry);}
+    throw e;
+  }
+}
+function isCorsError(e){return e.message.includes("Failed to fetch")||e.message.includes("NetworkError")||e.message.includes("CORS")||e.message.includes("Load failed");}
+
+const AVAILABLE_MODELS=[
+  {id:"DefGPT-Chat-gpt-oss-120b",label:"gpt-oss-120b — standaard (75K context)"},
+  {id:"DefGPT-Chat-gemma-4-31B-it",label:"gemma-4-31B-it — superuser (256K context, voor grote transcripts)"},
+];
+
+// ─── DEFAULT PROMPTS ─────────────────────────────────
+const DEFAULT_SYSTEM_PROMPT="Je bent een ervaren notulist die professionele, zakelijke Nederlandse vergaderverslagen schrijft. Je verzint geen feiten die niet in de bron staan en je vermeldt onzekerheden expliciet.";
+
+const DEFAULT_VERSLAG_PROMPT=`Zet de onderstaande transcriptie om naar een professioneel Nederlands vergaderverslag. Lever het verslag op in markdown, zodat koppen, bullets en tabellen netjes opmaken.
+
+Vergadering: {{NAAM}}
+Datum: {{DATUM}}
+
+Gebruik ALTIJD deze structuur:
+
+# 1. Titel en korte context
+Korte alinea met de titel en de context van het overleg: waar ging het over, wat was de aanleiding en het doel.
+
+# 2. Onderwerpenlijst
+Benoem de besproken onderwerpen kort als bullet points. Nummer de onderwerpen indien dat logisch past.
+
+# 3. Actielijst
+Formuleer actiepunten SMART waar mogelijk, anders zo concreet mogelijk. Gebruik een tabel met deze kolommen:
+
+| Volgnummer | Aanmaakdatum | Overleg | Actiepunt | Eigenaar | Termijn | Afgehandeld | Toelichting |
+|------------|-------------|---------|-----------|----------|---------|-------------|-------------|
+| [afkorting overleg, max 3 letters, niet ASC, gevolgd door datum in getalnotatie en volgnummer, bijv. IBV-260622-001] | {{DATUM}} | [naam overleg] | [concrete actie] | [één eigenaar] | [01-01-26] | Nee | [toelichting] |
+
+- Volgnummer: afkorting van de afdeling of het overleg (maximaal 3 letters, niet "ASC"), gevolgd door de datum in getalnotatie en een volgnummer.
+- Aanmaakdatum en Termijn in formaat 01-01-26. Afgehandeld standaard op "Nee".
+- Elk actiepunt heeft precies één eigenaar. Indien meerdere betrokkenen aanwezig zijn, wijs één trekker aan als eigenaar en noem overige betrokkenen alleen in de omschrijving.
+
+# 4. Besluiten en uitgangspunten
+Geef de genomen besluiten en de vastgestelde uitgangspunten weer.
+
+# 5. Volledige uitwerking van de onderwerpen
+Werk de onderwerpen volledig uit, met een duidelijk tussenkopje per onderwerp.
+
+# 6. Analyse en advies
+Sluit af met een beoordeling van de structuur en uitvoering van het overleg op basis van best practices. Betrek daarbij in elk geval: agenda, doel, besluitvorming, eigenaarschap, tijdsbewaking en opvolging. Geef concreet advies.
+
+Stijlregels:
+- Schrijf helder, professioneel, praktisch en zakelijk, zonder onnodig jargon.
+- Gebruik korte zinnen.
+- Wanneer informatie ontbreekt, maak redelijke aannames en vermeld de onzekerheden expliciet.
+
+TRANSCRIPTIE:
+{{TRANSCRIPT}}`;
+
+// ─── DATAMODEL + MIGRATIE ────────────────────────────
+function getDefaultData(){return{
+  folders:[],
+  meetings:[],
+  instellingen:{
+    defgptEndpoint:"https://pro.defgpt.data.mindef.nl/api/chat/completions",
+    defgptKey:"",
+    defgptModel:"DefGPT-Chat-gpt-oss-120b",
+    systemPrompt:DEFAULT_SYSTEM_PROMPT,
+    verslagPrompt:DEFAULT_VERSLAG_PROMPT,
+    maxTokens:4000,
+    transcriptMaxChars:120000,
+  }
+};}
+const DATA_ROOT_KEYS=["folders","meetings","instellingen"];
+function maakFolder(o){return{id:uid(),naam:"Nieuwe map",sortIndex:0,aangemaakt:new Date().toISOString(),gewijzigd:new Date().toISOString(),...o};}
+function migreerFolder(f){return{id:f.id||uid(),naam:f.naam||"Map",sortIndex:f.sortIndex==null?0:f.sortIndex,aangemaakt:f.aangemaakt||new Date().toISOString(),gewijzigd:f.gewijzigd||new Date().toISOString()};}
+function maakMeeting(o){return{id:uid(),naam:"Nieuwe vergadering",datum:todayISO(),folderId:null,transcript:"",verslagMd:"",verslagHtml:"",aangemaakt:new Date().toISOString(),gewijzigd:new Date().toISOString(),...o};}
+function migreerMeeting(m){return{
+  id:m.id||uid(),
+  naam:m.naam||"Naamloze vergadering",
+  datum:m.datum||todayISO(),
+  folderId:m.folderId||null,
+  transcript:m.transcript||"",
+  verslagMd:m.verslagMd||"",
+  verslagHtml:m.verslagHtml||"",
+  aangemaakt:m.aangemaakt||new Date().toISOString(),
+  gewijzigd:m.gewijzigd||new Date().toISOString(),
+};}
+function ensureDataShape(raw){
+  const defs=getDefaultData();
+  const data=raw&&typeof raw==="object"?{...raw}:{};
+  DATA_ROOT_KEYS.forEach(k=>{if(data[k]===undefined)data[k]=JSON.parse(JSON.stringify(defs[k]));});
+  data.folders=Array.isArray(data.folders)?data.folders.map(migreerFolder):[];
+  data.meetings=Array.isArray(data.meetings)?data.meetings.map(migreerMeeting):[];
+  data.instellingen={...defs.instellingen,...(data.instellingen||{})};
+  // herstel lege prompts naar default zodat de app nooit zonder instructie zit
+  if(!data.instellingen.verslagPrompt||!data.instellingen.verslagPrompt.trim())data.instellingen.verslagPrompt=DEFAULT_VERSLAG_PROMPT;
+  if(!data.instellingen.systemPrompt||!data.instellingen.systemPrompt.trim())data.instellingen.systemPrompt=DEFAULT_SYSTEM_PROMPT;
+  return data;
+}
+
+function buildPrompt(meeting,settings){
+  const max=settings.transcriptMaxChars||120000;
+  const t=(meeting.transcript||"").slice(0,max);
+  let p=settings.verslagPrompt||DEFAULT_VERSLAG_PROMPT;
+  p=p.replace(/\{\{NAAM\}\}/g,meeting.naam||"onbekend").replace(/\{\{DATUM\}\}/g,fmtDatum(meeting.datum));
+  if(p.includes("{{TRANSCRIPT}}"))p=p.replace(/\{\{TRANSCRIPT\}\}/g,t||"(geen transcriptie)");
+  else p+="\n\nTRANSCRIPTIE:\n"+(t||"(geen transcriptie)");
+  return p;
+}
+
+// ─── UI HELPERS ──────────────────────────────────────
+const DS={fs:{sm:12,base:13,md:14,lg:18,xl:22},fw:{med:500,semi:600,bold:700}};
+function btnStyle(bg,color,compact){return{padding:compact?"6px 12px":"9px 16px",background:bg,color:color,border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600};}
+function cardSt(){return{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:18,marginBottom:16,boxShadow:"var(--shadow)"};}
+const LBL={display:"block",fontSize:12,fontWeight:600,color:"var(--text-secondary)",marginBottom:5};
+const INP={width:"100%",padding:"9px 11px",border:"1px solid var(--border)",borderRadius:8,fontSize:13,background:"#FFF",color:"var(--text)"};
+function taStyle(h){return{...INP,minHeight:h||110,lineHeight:1.5};}
+
+function AutoTextarea(props){
+  const ref=useRef(null);
+  const resize=useCallback(()=>{const el=ref.current;if(!el)return;el.style.height="auto";el.style.height=Math.max(el.scrollHeight,parseInt(props.style&&props.style.minHeight)||110)+"px";},[props.style]);
+  useLayoutEffect(()=>{resize();},[props.value,resize]);
+  return <textarea {...props} ref={ref} onInput={e=>{resize();props.onInput&&props.onInput(e);}}/>;
+}
+
+function Modal({title,onClose,children,wide}){
+  return(
+    <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(15,23,42,.45)",display:"flex",alignItems:"flex-start",justifyContent:"center",zIndex:100,padding:"40px 16px",overflow:"auto"}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"#FFF",borderRadius:14,padding:24,width:"100%",maxWidth:wide?760:520,boxShadow:"0 20px 50px rgba(0,0,0,.25)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <div style={{fontSize:16,fontWeight:700}}>{title}</div>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"var(--text-muted)",lineHeight:1}}>×</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─── CHANGELOG ───────────────────────────────────────
+const CHANGELOG=[
+  {versie:"1.1",datum:"2026-06-24",compat:"backward compatible — oude data zonder folders wordt automatisch gemigreerd",punten:[
+    "Vergaderingen groeperen in mappen/projecten in de sidebar.",
+    "Mappen aanmaken, hernoemen en verwijderen in het zijmenu.",
+    "Optionele map-koppeling vooraf én achteraf per vergadering.",
+    "Transcript-invoerveld heeft vaste hoogte en scrollt.",
+  ]},
+  {versie:"1.0",datum:"2026-06-22",compat:"n.v.t. (eerste versie)",punten:[
+    "Transcript uploaden of plakken per vergadering (.txt/.vtt/.srt/.md).",
+    "Verslag genereren via DefGPT met CORS-fallback (prompt kopiëren, antwoord terugplakken).",
+    "Vergaderingen ordenen in het zijmenu, gesorteerd op datum.",
+    "Verslag als HTML weergegeven en direct in de weergave bewerkbaar.",
+    "Instelbare verslag-prompt en system-prompt met placeholders {{TRANSCRIPT}}, {{NAAM}}, {{DATUM}}.",
+    "Model instelbaar (oss-120b standaard, gemma-4-31B optie).",
+    "Opslag via File System Access naar een gekozen .json (netwerkschijf mogelijk). Export/backup ingebouwd.",
+    "Verslag los exporteren als standalone .html.",
+  ]},
+];
+
+// ─── DATA HOOK ───────────────────────────────────────
+function useData(){
+  const[ready,setReady]=useState(false);
+  const[gekoppeld,setGekoppeld]=useState(false);
+  const[bestand,setBestand]=useState(null);
+  const[folders,setFolders]=useState([]);
+  const[meetings,setMeetings]=useState([]);
+  const[instellingen,setInstellingen]=useState(getDefaultData().instellingen);
+  const lastMtime=useRef(0);
+
+  const apply=useCallback(d=>{setFolders(d.folders||[]);setMeetings(d.meetings||[]);setInstellingen({...getDefaultData().instellingen,...(d.instellingen||{})});lastMtime.current=d.__mtime||Date.now();},[]);
+
+  const laad=useCallback(async()=>{
+    const d=await readData();
+    if(d){apply(d);setGekoppeld(true);setBestand(await fileName());}
+    else{setGekoppeld(false);}
+    setReady(true);
+  },[apply]);
+
+  useEffect(()=>{laad();},[laad]);
+
+  const persist=useCallback(async(next)=>{
+    try{const mt=await writeData(next);lastMtime.current=mt;}
+    catch(e){console.error(e);alert("Opslaan mislukt: "+e.message);}
+  },[]);
+
+  const updMeetings=useCallback(updater=>{
+    setMeetings(prev=>{
+      const next=typeof updater==="function"?updater(prev):updater;
+      persist({folders,meetings:next,instellingen});
+      return next;
+    });
+  },[folders,instellingen,persist]);
+
+  const updFolders=useCallback(updater=>{
+    setFolders(prev=>{
+      const next=typeof updater==="function"?updater(prev):updater;
+      persist({folders:next,meetings,instellingen});
+      return next;
+    });
+  },[meetings,instellingen,persist]);
+
+  const updInstellingen=useCallback(patch=>{
+    setInstellingen(prev=>{
+      const next={...prev,...patch};
+      persist({folders,meetings,instellingen:next});
+      return next;
+    });
+  },[folders,meetings,persist]);
+
+  return{ready,gekoppeld,bestand,folders,meetings,instellingen,updMeetings,updFolders,updInstellingen,laad,setGekoppeld,setBestand};
+}
+
+// ─── KOPPELSCHERM ────────────────────────────────────
+function KoppelScherm({onKlaar}){
+  const[bezig,setBezig]=useState(false);
+  const support=fsSupported();
+  async function kies(){setBezig(true);if(await selectDataFile())onKlaar();setBezig(false);}
+  async function nieuw(){setBezig(true);if(await createDataFile())onKlaar();setBezig(false);}
+  return(
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+      <div style={{maxWidth:540,width:"100%",background:"#FFF",border:"1px solid var(--border)",borderRadius:14,padding:32,boxShadow:"var(--shadow-md)"}}>
+        <div style={{fontSize:24,fontWeight:800,marginBottom:6}}>📝 Notulist-Pro <span style={{fontSize:13,color:"var(--text-muted)",fontWeight:600}}>v{APP_VERSION}</span></div>
+        <div style={{color:"var(--text-secondary)",fontSize:14,marginBottom:22,lineHeight:1.6}}>Transcript erin, professioneel vergaderverslag eruit. Koppel eerst een databestand. Dit bestand bewaart al je vergaderingen en instellingen en mag op een netwerkschijf staan.</div>
+        {!support&&<div style={{background:"#FEF2F2",border:"1px solid #FCA5A5",borderRadius:8,padding:"10px 14px",fontSize:13,color:"#DC2626",marginBottom:16}}>Deze browser ondersteunt de File System Access API niet. Gebruik Edge of Chrome.</div>}
+        <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+          <button disabled={bezig||!support} className="btn-hover" onClick={nieuw} style={btnStyle("var(--primary)","#FFF")}>＋ Nieuw databestand aanmaken</button>
+          <button disabled={bezig||!support} className="btn-hover" onClick={kies} style={btnStyle("var(--muted)","var(--text)")}>📂 Bestaand bestand koppelen</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── SIDEBAR ─────────────────────────────────────────
+function Sidebar({folders,meetings,selectedId,selectedFolderId,onSelect,onNieuw,onSelectFolder,onAddFolder,onUpdateFolder,onDeleteFolder,onSettings,onChangelog,bestand}){
+  const sortedFolders=useMemo(()=>[...folders].sort((a,b)=>(a.sortIndex||0)-(b.sortIndex||0)||(a.aangemaakt||"").localeCompare(b.aangemaakt||"")),[folders]);
+  const sortedMeetings=useMemo(()=>[...meetings].sort((a,b)=>(b.datum||"").localeCompare(a.datum||"")||(b.aangemaakt||"").localeCompare(a.aangemaakt||"")),[meetings]);
+  const meetingsByFolder=useMemo(()=>{
+    const map={"__overige__":[]};
+    sortedFolders.forEach(f=>map[f.id]=[]);
+    sortedMeetings.forEach(m=>{if(m.folderId&&map[m.folderId])map[m.folderId].push(m);else map["__overige__"].push(m);});
+    return map;
+  },[sortedFolders,sortedMeetings]);
+
+  const[open,setOpen]=useState(()=>{
+    const init={"__overige__":true};
+    folders.forEach(f=>init[f.id]=true);
+    return init;
+  });
+  useEffect(()=>{setOpen(prev=>{const next={...prev,"__overige__":true};folders.forEach(f=>{if(next[f.id]===undefined)next[f.id]=true;});return next;});},[folders]);
+
+  function toggle(fid){setOpen(prev=>({...prev,[fid]:!prev[fid]}));}
+
+  function MeetingItem({m}){
+    const sel=m.id===selectedId;const heeftVerslag=!!(m.verslagMd||m.verslagHtml);
+    return(
+      <div key={m.id} onClick={()=>onSelect(m.id)} className="btn-hover" style={{padding:"8px 10px",borderRadius:6,cursor:"pointer",marginBottom:3,background:sel?"var(--primary)":"transparent",color:sel?"#FFF":"var(--text)"}}>
+        <div style={{fontSize:13,fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{m.naam||"Naamloos"}</div>
+        <div style={{fontSize:11,opacity:.8,marginTop:1}}>{fmtDatumKort(m.datum)} {heeftVerslag?"· ✓ verslag":"· concept"}</div>
+      </div>
+    );
+  }
+
+  function FolderHeader({f}){
+    const[isEditing,setEditing]=useState(false);
+    const[editName,setEditName]=useState(f.naam);
+    const sel=f.id===selectedFolderId;
+    return(
+      <div style={{display:"flex",alignItems:"center",gap:6,padding:"7px 8px",borderRadius:6,cursor:"pointer",background:sel?"var(--muted)":"transparent"}} onClick={()=>{onSelectFolder(f.id);toggle(f.id);}}>
+        <span style={{fontSize:12,color:"var(--text-muted)",width:14,textAlign:"center"}}>{open[f.id]?"▾":"▸"}</span>
+        {isEditing
+          ?<input autoFocus style={{...INP,fontSize:13,padding:"4px 6px",flex:1}} value={editName} onChange={e=>setEditName(e.target.value)} onBlur={()=>{onUpdateFolder(f.id,{naam:editName});setEditing(false);}} onKeyDown={e=>{if(e.key==="Enter"){onUpdateFolder(f.id,{naam:editName});setEditing(false);}}} onClick={e=>e.stopPropagation()}/>
+          :<span style={{flex:1,fontSize:13,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{f.naam}</span>
+        }
+        <span style={{fontSize:11,color:"var(--text-muted)",padding:"0 2px"}}>{meetingsByFolder[f.id].length}</span>
+        <button onClick={e=>{e.stopPropagation();setEditing(true);setEditName(f.naam);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--text-secondary)",padding:"0 4px"}} title="Hernoemen">✏</button>
+        <button onClick={e=>{e.stopPropagation();onDeleteFolder(f.id);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--danger)",padding:"0 4px"}} title="Verwijderen">🗑</button>
+      </div>
+    );
+  }
+
+  return(
+    <div style={{width:288,minWidth:288,background:"#FFF",borderRight:"1px solid var(--border)",height:"100vh",display:"flex",flexDirection:"column",position:"sticky",top:0}}>
+      <div style={{padding:"18px 18px 12px"}}>
+        <div style={{fontSize:18,fontWeight:800}}>📝 Notulist-Pro</div>
+        <div style={{fontSize:11,color:"var(--text-muted)",fontWeight:600}}>v{APP_VERSION}{bestand?" · "+bestand:""}</div>
+      </div>
+      <div style={{padding:"0 14px 10px",display:"flex",flexDirection:"column",gap:8}}>
+        <button className="btn-hover" onClick={onNieuw} style={{...btnStyle("var(--primary)","#FFF"),width:"100%"}}>＋ Nieuwe vergadering</button>
+        <button className="btn-hover" onClick={onAddFolder} style={{...btnStyle("var(--muted)","var(--text)",true),width:"100%"}}>＋ Nieuwe map</button>
+      </div>
+      <div style={{flex:1,overflow:"auto",padding:"4px 10px"}}>
+        {sortedFolders.length===0&&meetings.length===0&&<div style={{color:"var(--text-muted)",fontSize:13,padding:"14px 8px",textAlign:"center"}}>Nog geen mappen of vergaderingen.</div>}
+        {sortedFolders.map(f=>(
+          <div key={f.id} style={{marginBottom:6}}>
+            <FolderHeader f={f}/>
+            {open[f.id]&&<div style={{paddingLeft:12}}>{meetingsByFolder[f.id].map(m=><MeetingItem key={m.id} m={m}/>)}</div>
+            }
+          </div>
+        ))}
+        {meetingsByFolder["__overige__"].length>0&&(
+          <div style={{marginTop:4}}>
+            <div style={{display:"flex",alignItems:"center",gap:6,padding:"7px 8px",borderRadius:6,cursor:"pointer"}} onClick={()=>toggle("__overige__")}>
+              <span style={{fontSize:12,color:"var(--text-muted)",width:14,textAlign:"center"}}>{open["__overige__"]?"▾":"▸"}</span>
+              <span style={{flex:1,fontSize:13,fontWeight:600,color:"var(--text-secondary)"}}>Overige vergaderingen</span>
+              <span style={{fontSize:11,color:"var(--text-muted)"}}>{meetingsByFolder["__overige__"].length}</span>
+            </div>
+            {open["__overige__"]&&<div style={{paddingLeft:12}}>{meetingsByFolder["__overige__"].map(m=><MeetingItem key={m.id} m={m}/>)}</div>}
+          </div>
+        )}
+      </div>
+      <div style={{padding:12,borderTop:"1px solid var(--border)",display:"flex",gap:8}}>
+        <button className="btn-hover" onClick={onSettings} style={{...btnStyle("var(--muted)","var(--text)",true),flex:1}}>⚙ Instellingen</button>
+        <button className="btn-hover" onClick={onChangelog} style={btnStyle("var(--muted)","var(--text)",true)}>ℹ</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── VERGADERWEERGAVE ────────────────────────────────
+function MeetingView({meeting,folders,settings,onSave,onDelete}){
+  const[transcript,setTranscript]=useState(meeting.transcript||"");
+  const[naam,setNaam]=useState(meeting.naam||"");
+  const[datum,setDatum]=useState(meeting.datum||todayISO());
+  const[folderId,setFolderId]=useState(meeting.folderId||"");
+  const[bezig,setBezig]=useState(false);
+  const[fout,setFout]=useState("");
+  const[corsPrompt,setCorsPrompt]=useState(null);
+  const[editMode,setEditMode]=useState(false);
+  const[toonTranscript,setToonTranscript]=useState(!(meeting.verslagMd||meeting.verslagHtml));
+  const editRef=useRef(null);
+
+  useEffect(()=>{setTranscript(meeting.transcript||"");setNaam(meeting.naam||"");setDatum(meeting.datum||todayISO());setFolderId(meeting.folderId||"");setEditMode(false);setFout("");setCorsPrompt(null);setToonTranscript(!(meeting.verslagMd||meeting.verslagHtml));},[meeting.id]);
+
+  function patch(p){onSave({...meeting,...p,gewijzigd:new Date().toISOString()});}
+  function onFile(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{setTranscript(r.result);patch({transcript:r.result});};r.readAsText(f);e.target.value="";}
+
+  async function genereer(){
+    if(!settings.defgptKey){setFout("Geen API-sleutel ingesteld. Ga naar Instellingen.");return;}
+    if(!transcript.trim()){setFout("Geen transcript. Upload of plak eerst een transcript.");return;}
+    setFout("");setBezig(true);setCorsPrompt(null);
+    const prompt=buildPrompt({...meeting,naam,datum,transcript},settings);
+    try{
+      const out=await callDefGPT(settings.defgptEndpoint,settings.defgptKey,settings.defgptModel,settings.systemPrompt,prompt,settings.maxTokens,0.3);
+      patch({verslagMd:out,verslagHtml:""});
+      setToonTranscript(false);
+    }catch(err){
+      if(isCorsError(err)){setCorsPrompt({prompt,paste:""});setFout("");}
+      else setFout(err.message);
+    }
+    setBezig(false);
+  }
+
+  function startEdit(){setEditMode(true);}
+  function saveEdit(){const html=editRef.current?editRef.current.innerHTML:"";patch({verslagHtml:html});setEditMode(false);}
+  function cancelEdit(){setEditMode(false);}
+
+  const heeftVerslag=!!(meeting.verslagMd||meeting.verslagHtml);
+  const max=settings.transcriptMaxChars||120000;
+
+  return(
+    <div style={{flex:1,minWidth:0,height:"100vh",overflow:"auto"}}>
+      <div style={{maxWidth:900,margin:"0 auto",padding:"26px 30px"}}>
+
+        {corsPrompt&&(
+          <Modal title="DefGPT niet automatisch bereikbaar (CORS)" onClose={()=>setCorsPrompt(null)} wide>
+            <div style={{fontSize:13,color:"var(--text-secondary)",marginBottom:12,lineHeight:1.6}}>De browser mag DefGPT niet direct aanroepen. Kopieer de prompt hieronder, plak hem in DefGPT, en plak het antwoord terug in het onderste vak.</div>
+            <AutoTextarea readOnly style={{...taStyle(180),fontSize:12,fontFamily:"monospace"}} value={corsPrompt.prompt} onClick={e=>e.target.select()}/>
+            <div style={{display:"flex",gap:8,marginTop:10}}><button className="btn-hover" onClick={()=>navigator.clipboard.writeText(corsPrompt.prompt)} style={btnStyle("var(--primary)","#FFF",true)}>📋 Kopieer prompt</button></div>
+            <div style={{marginTop:16}}>
+              <label style={LBL}>Plak hier het antwoord van DefGPT</label>
+              <AutoTextarea style={{...taStyle(140),fontSize:12}} placeholder="Plak hier het volledige verslag (markdown)..." onChange={e=>{const val=e.target.value;setCorsPrompt(cp=>({...cp,paste:val}));}}/>
+            </div>
+            <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:12}}>
+              <button className="btn-hover" onClick={()=>setCorsPrompt(null)} style={btnStyle("var(--muted)","var(--text)",true)}>Annuleer</button>
+              <button className="btn-hover" onClick={()=>{const v=corsPrompt&&corsPrompt.paste;if(v&&v.trim()){patch({verslagMd:v,verslagHtml:""});setToonTranscript(false);}setCorsPrompt(null);}} style={btnStyle("var(--success)","#FFF",true)}>Verslag opslaan</button>
+            </div>
+          </Modal>
+        )}
+
+        {/* Kop */}
+        <div style={{display:"flex",gap:10,alignItems:"flex-end",marginBottom:18,flexWrap:"wrap"}}>
+          <div style={{flex:"1 1 280px"}}>
+            <label style={LBL}>Naam vergadering</label>
+            <input style={{...INP,fontSize:16,fontWeight:700}} value={naam} onChange={e=>setNaam(e.target.value)} onBlur={()=>patch({naam})}/>
+          </div>
+          <div style={{width:150}}>
+            <label style={LBL}>Datum</label>
+            <input type="date" style={INP} value={datum} onChange={e=>{setDatum(e.target.value);patch({datum:e.target.value});}}/>
+          </div>
+          <div style={{flex:"1 1 180px"}}>
+            <label style={LBL}>Map (optioneel)</label>
+            <select style={INP} value={folderId||""} onChange={e=>{const fid=e.target.value||null;setFolderId(fid||"");patch({folderId:fid});}}>
+              <option value="">— Geen map —</option>
+              {[...folders].sort((a,b)=>(a.sortIndex||0)-(b.sortIndex||0)).map(f=><option key={f.id} value={f.id}>{f.naam}</option>)}
+            </select>
+          </div>
+          <button className="btn-hover" onClick={()=>{if(confirm("Deze vergadering verwijderen? Dit kan niet ongedaan worden gemaakt."))onDelete(meeting.id);}} style={btnStyle("var(--muted)","var(--danger)",true)}>🗑 Verwijder</button>
+        </div>
+
+        {fout&&<div style={{background:"#FEF2F2",border:"1px solid #FCA5A5",borderRadius:8,padding:"10px 14px",fontSize:13,color:"#DC2626",marginBottom:14}}>⚠ {fout}</div>}
+
+        {/* Transcript */}
+        <div style={cardSt()}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}} onClick={()=>setToonTranscript(t=>!t)}>
+            <div style={{fontWeight:700,fontSize:14}}>{toonTranscript?"▾":"▸"} 📝 Transcript <span style={{fontWeight:500,color:"var(--text-muted)",fontSize:12}}>({transcript.length} tekens{transcript.length>max?` — eerste ${max} worden gebruikt`:""})</span></div>
+            <label className="btn-hover" onClick={e=>e.stopPropagation()} style={{...btnStyle("var(--muted)","var(--text)",true),cursor:"pointer"}}>📁 Upload bestand<input type="file" accept=".txt,.md,.vtt,.srt" onChange={onFile} style={{display:"none"}}/></label>
+          </div>
+          {toonTranscript&&<div style={{marginTop:12}}>
+            <textarea
+              style={{...INP, width:"100%", height:180, minHeight:180, overflow:"auto", resize:"none", fontSize:13, lineHeight:1.5}}
+              value={transcript}
+              onChange={e=>setTranscript(e.target.value)}
+              onBlur={()=>patch({transcript})}
+              placeholder="Plak hier de transcriptie of upload een .txt-bestand."
+            />
+          </div>}
+        </div>
+
+        {/* Genereer */}
+        <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:16,flexWrap:"wrap"}}>
+          <button className="btn-hover" disabled={bezig} onClick={genereer} style={{...btnStyle("var(--primary)","#FFF"),opacity:bezig?.6:1}}>{bezig?"⏳ Bezig met genereren...":heeftVerslag?"🔄 Verslag opnieuw genereren":"✨ Genereer verslag"}</button>
+          {heeftVerslag&&!bezig&&<span style={{fontSize:12,color:"var(--text-muted)"}}>Opnieuw genereren overschrijft het huidige verslag en je handmatige bewerkingen.</span>}
+        </div>
+
+        {/* Verslag */}
+        {heeftVerslag&&(
+          <div style={cardSt()}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+              <div style={{fontWeight:700,fontSize:14}}>📄 Verslag</div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {!editMode&&<button className="btn-hover" onClick={startEdit} style={btnStyle("var(--muted)","var(--text)",true)}>✏ Bewerk</button>}
+                {editMode&&<button className="btn-hover" onClick={saveEdit} style={btnStyle("var(--success)","#FFF",true)}>✓ Opslaan</button>}
+                {editMode&&<button className="btn-hover" onClick={cancelEdit} style={btnStyle("var(--muted)","var(--text)",true)}>Annuleer</button>}
+                {!editMode&&<button className="btn-hover" onClick={()=>exportVerslagHTML({...meeting,naam,datum})} style={btnStyle("var(--muted)","var(--text)",true)}>⬇ HTML</button>}
+              </div>
+            </div>
+            {editMode
+              ? <div ref={editRef} className="report-view" contentEditable suppressContentEditableWarning style={{minHeight:300,padding:14,background:"#FFF",borderRadius:8}} dangerouslySetInnerHTML={{__html:reportHtml(meeting)}}/>
+              : <div className="report-view" style={{padding:"0 2px"}} dangerouslySetInnerHTML={{__html:reportHtml(meeting)}}/>
+            }
+            {editMode&&<div style={{fontSize:12,color:"var(--text-muted)",marginTop:10}}>Tip: bewerk besluiten en acties direct in de tekst. Klik daarna op Opslaan.</div>}
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+// ─── INSTELLINGEN ────────────────────────────────────
+function SettingsView({settings,onUpd,onClose}){
+  const[s,setS]=useState(settings);
+  const[testStatus,setTestStatus]=useState("");
+  const[logOpen,setLogOpen]=useState(false);
+  function upd(k,v){setS(prev=>({...prev,[k]:v}));}
+  function bewaar(){onUpd(s);onClose();}
+  async function test(){
+    setTestStatus("Testen...");
+    try{const out=await callDefGPT(s.defgptEndpoint,s.defgptKey,s.defgptModel,"Je bent een testassistent.","Antwoord met exact: OK",50,0);setTestStatus(out.toLowerCase().includes("ok")?"✓ Verbinding werkt":"✓ Antwoord ontvangen: "+out.slice(0,40));}
+    catch(e){setTestStatus(isCorsError(e)?"⚠ CORS: directe call geblokkeerd. De generatie werkt dan via kopieer/plak-fallback.":"✗ "+e.message);}
+  }
+  return(
+    <div style={{flex:1,height:"100vh",overflow:"auto"}}>
+      <div style={{maxWidth:760,margin:"0 auto",padding:"26px 30px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+          <div style={{fontSize:20,fontWeight:800}}>⚙ Instellingen</div>
+          <div style={{display:"flex",gap:8}}>
+            <button className="btn-hover" onClick={onClose} style={btnStyle("var(--muted)","var(--text)",true)}>Annuleer</button>
+            <button className="btn-hover" onClick={bewaar} style={btnStyle("var(--success)","#FFF",true)}>✓ Opslaan</button>
+          </div>
+        </div>
+
+        <div style={cardSt()}>
+          <div style={{fontWeight:700,fontSize:14,marginBottom:14}}>🤖 DefGPT-koppeling</div>
+          <div style={{marginBottom:12}}><label style={LBL}>Endpoint URL</label><input style={INP} value={s.defgptEndpoint||""} onChange={e=>upd("defgptEndpoint",e.target.value)}/></div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+            <div>
+              <label style={LBL}>Model</label>
+              <input list="modellen" style={INP} value={s.defgptModel||""} onChange={e=>upd("defgptModel",e.target.value)}/>
+              <datalist id="modellen">{AVAILABLE_MODELS.map(m=><option key={m.id} value={m.id}>{m.label}</option>)}</datalist>
+            </div>
+            <div><label style={LBL}>API-sleutel (Bearer token)</label><input type="password" style={INP} value={s.defgptKey||""} onChange={e=>upd("defgptKey",e.target.value)} placeholder="Bearer token"/></div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <div><label style={LBL}>Max tokens (antwoordlengte)</label><input type="number" style={INP} value={s.maxTokens||4000} onChange={e=>upd("maxTokens",parseInt(e.target.value)||4000)}/></div>
+            <div><label style={LBL}>Max transcript-tekens</label><input type="number" style={INP} value={s.transcriptMaxChars||120000} onChange={e=>upd("transcriptMaxChars",parseInt(e.target.value)||120000)}/></div>
+          </div>
+          <div style={{display:"flex",gap:10,alignItems:"center",marginTop:14}}>
+            <button className="btn-hover" onClick={test} style={btnStyle("var(--muted)","var(--text)",true)}>🔌 Test verbinding</button>
+            {testStatus&&<span style={{fontSize:12,color:"var(--text-secondary)"}}>{testStatus}</span>}
+          </div>
+          <div style={{marginTop:14,borderTop:"1px solid var(--border)",paddingTop:12}}>
+            <button onClick={()=>setLogOpen(o=>!o)} style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--text-secondary)",fontWeight:600,padding:0}}>{logOpen?"▾":"▸"} 🔧 DefGPT tech-log ({DEFGPT_LOG.length})</button>
+            {logOpen&&<div style={{marginTop:10,maxHeight:280,overflow:"auto",background:"#0F172A",borderRadius:8,padding:12}}>{DEFGPT_LOG.length===0?<div style={{color:"#64748B",fontSize:12,fontFamily:"monospace"}}>Nog geen aanroepen.</div>:DEFGPT_LOG.map((l,i)=>(<div key={i} style={{fontFamily:"monospace",fontSize:11,color:"#CBD5E1",borderBottom:"1px solid #1E293B",padding:"6px 0"}}><div><span style={{color:l.status==="ok"?"#4ADE80":"#F87171"}}>[{l.status}]</span> <span style={{color:"#94A3B8"}}>{l.ts}</span> · {l.duurMs}ms · {l.promptLen} tekens</div><div style={{color:"#64748B"}}>{l.model}</div>{l.fout&&<div style={{color:"#F87171",whiteSpace:"pre-wrap",marginTop:2}}>{l.fout}</div>}</div>))}</div>}
+          </div>
+        </div>
+
+        <div style={cardSt()}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <div style={{fontWeight:700,fontSize:14}}>📋 Verslag-prompt</div>
+            <button className="btn-hover" onClick={()=>{if(confirm("Verslag-prompt terugzetten naar standaard?"))upd("verslagPrompt",DEFAULT_VERSLAG_PROMPT);}} style={btnStyle("var(--muted)","var(--text)",true)}>↺ Standaard</button>
+          </div>
+          <div style={{fontSize:12,color:"var(--text-secondary)",marginBottom:8,lineHeight:1.5}}>Dit is de instructie die met het transcript meegaat. Placeholders: <code>{"{{TRANSCRIPT}}"}</code>, <code>{"{{NAAM}}"}</code>, <code>{"{{DATUM}}"}</code>. Staat <code>{"{{TRANSCRIPT}}"}</code> er niet in, dan wordt het transcript onderaan toegevoegd.</div>
+          <AutoTextarea style={{...taStyle(260),fontSize:12,fontFamily:"monospace"}} value={s.verslagPrompt||""} onChange={e=>upd("verslagPrompt",e.target.value)}/>
+        </div>
+
+        <div style={cardSt()}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <div style={{fontWeight:700,fontSize:14}}>🎭 System-prompt</div>
+            <button className="btn-hover" onClick={()=>{if(confirm("System-prompt terugzetten naar standaard?"))upd("systemPrompt",DEFAULT_SYSTEM_PROMPT);}} style={btnStyle("var(--muted)","var(--text)",true)}>↺ Standaard</button>
+          </div>
+          <div style={{fontSize:12,color:"var(--text-secondary)",marginBottom:8}}>De rol die DefGPT meekrijgt.</div>
+          <AutoTextarea style={{...taStyle(80),fontSize:12}} value={s.systemPrompt||""} onChange={e=>upd("systemPrompt",e.target.value)}/>
+        </div>
+
+        <div style={cardSt()}>
+          <div style={{fontWeight:700,fontSize:14,marginBottom:10}}>💾 Data</div>
+          <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+            <button className="btn-hover" onClick={exportBackup} style={btnStyle("var(--muted)","var(--text)",true)}>⬇ Backup downloaden (.json)</button>
+            <button className="btn-hover" onClick={async()=>{if(await selectDataFile())location.reload();}} style={btnStyle("var(--muted)","var(--text)",true)}>📂 Ander databestand koppelen</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+// ─── CHANGELOG MODAL ─────────────────────────────────
+function ChangelogModal({onClose}){
+  return(
+    <Modal title="Wat is nieuw" onClose={onClose} wide>
+      {CHANGELOG.map(c=>(
+        <div key={c.versie} style={{marginBottom:16}}>
+          <div style={{fontWeight:700,fontSize:14}}>v{c.versie} <span style={{color:"var(--text-muted)",fontWeight:500,fontSize:12}}>· {c.datum} · backward compatible: {c.compat}</span></div>
+          <ul style={{margin:"8px 0 0 18px",fontSize:13,color:"var(--text-secondary)",lineHeight:1.6}}>{c.punten.map((p,i)=><li key={i}>{p}</li>)}</ul>
+        </div>
+      ))}
+    </Modal>
+  );
+}
+
+// ─── APP ─────────────────────────────────────────────
+function App(){
+  const data=useData();
+  const[selectedId,setSelectedId]=useState(null);
+  const[selectedFolderId,setSelectedFolderId]=useState(null);
+  const[view,setView]=useState("meeting"); // meeting | settings
+  const[changelog,setChangelog]=useState(false);
+
+  if(!data.ready)return <div style={{padding:60,textAlign:"center",color:"var(--text-muted)"}}>Laden...</div>;
+  if(!data.gekoppeld)return <KoppelScherm onKlaar={()=>data.laad()}/>;
+
+  const selected=data.meetings.find(m=>m.id===selectedId)||null;
+
+  function nieuw(){
+    const m=maakMeeting({folderId:selectedFolderId});
+    data.updMeetings(prev=>[m,...prev]);
+    setSelectedId(m.id);setView("meeting");
+  }
+  function saveMeeting(updated){data.updMeetings(prev=>prev.map(m=>m.id===updated.id?updated:m));}
+  function deleteMeeting(id){data.updMeetings(prev=>prev.filter(m=>m.id!==id));if(selectedId===id)setSelectedId(null);}
+
+  function addFolder(){
+    const f=maakFolder({sortIndex:data.folders.length});
+    data.updFolders(prev=>[...prev,f]);
+    setSelectedFolderId(f.id);
+  }
+  function updateFolder(id,patch){data.updFolders(prev=>prev.map(f=>f.id===id?{...f,...patch,gewijzigd:new Date().toISOString()}:f));}
+  function deleteFolder(id){
+    if(!confirm("Deze map verwijderen? Vergaderingen in deze map worden verplaatst naar 'Overige vergaderingen'."))return;
+    data.updFolders(prev=>prev.filter(f=>f.id!==id));
+    data.updMeetings(prev=>prev.map(m=>m.folderId===id?{...m,folderId:null,gewijzigd:new Date().toISOString()}:m));
+    if(selectedFolderId===id)setSelectedFolderId(null);
+  }
+
+  return(
+    <div style={{display:"flex",minHeight:"100vh"}}>
+      {changelog&&<ChangelogModal onClose={()=>setChangelog(false)}/>}
+      <Sidebar folders={data.folders} meetings={data.meetings} selectedId={selectedId} selectedFolderId={selectedFolderId} bestand={data.bestand}
+        onSelect={id=>{setSelectedId(id);setView("meeting");}} onNieuw={nieuw}
+        onSelectFolder={id=>setSelectedFolderId(id)}
+        onAddFolder={addFolder} onUpdateFolder={updateFolder} onDeleteFolder={deleteFolder}
+        onSettings={()=>setView("settings")} onChangelog={()=>setChangelog(true)}/>
+      {view==="settings"
+        ? <SettingsView settings={data.instellingen} onUpd={p=>data.updInstellingen(p)} onClose={()=>setView("meeting")}/>
+        : selected
+          ? <MeetingView key={selected.id} meeting={selected} folders={data.folders} settings={data.instellingen} onSave={saveMeeting} onDelete={deleteMeeting}/>
+          : <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--text-muted)",flexDirection:"column",gap:14}}>
+              <div style={{fontSize:48}}>📝</div>
+              <div style={{fontSize:15}}>Kies links een vergadering of maak een nieuwe aan.</div>
+              <button className="btn-hover" onClick={nieuw} style={btnStyle("var(--primary)","#FFF")}>＋ Nieuwe vergadering</button>
+            </div>
+      }
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
