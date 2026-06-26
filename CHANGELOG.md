@@ -7,6 +7,9 @@
 
 # Notulist-Pro — CHANGELOG.md
 
+## 2026-06-26 — Versie-mismatch fix in loading screen
+- Loading screen toonde "Notulist-Pro v1.0"; gecorrigeerd naar "Notulist-Pro v1.1" (overeenkomend met APP_VERSION en `<title>`).
+
 ## 2026-06-24 — Federated context onboarding
 - Project context files toegevoegd vanuit `/config/workspace/templates/project-context/`.
 - Notulist-Pro geregistreerd in `/config/workspace/scripts/check_federated_context.sh`.
