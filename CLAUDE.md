@@ -47,8 +47,10 @@ Before declaring the session done, run through every item below and confirm:
       "react.min.js" \
       "react-dom.min.js" \
       "babel.min.js" \
-      "notulist-pro-data.json"
+      "notulist-pro-data.json" \
+      "README.md"
     ```
     Zie ook `skills/skill-tarbal-distributie.md`.
+    ⚠ README.md bijwerken als er nieuwe functies of gewijzigde werkinstructies zijn.
 
 Only answer the user after these steps are actually done.

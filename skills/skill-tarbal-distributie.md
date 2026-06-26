@@ -11,7 +11,8 @@ tar -czf /config/workspace/notulist-pro.tar.gz \
   "react.min.js" \
   "react-dom.min.js" \
   "babel.min.js" \
-  "notulist-pro-data.json"
+  "notulist-pro-data.json" \
+  "README.md"
 ```
 
 Als `/config/workspace/notulist-pro.tar.gz` al bestaat, wordt het zonder waarschuwing overschreven — dit is het gewenste gedrag.
