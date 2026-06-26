@@ -179,7 +179,7 @@ Data staat in het gekozen JSON-bestand. Dit bestand kan op een netwerkschijf sta
 Controleer de browserconsole (F12). Meest voorkomende oorzaak: een van de drie JS-bestanden (`react.min.js`, `react-dom.min.js`, `babel.min.js`) ontbreekt naast `notulist-pro.html`.
 
 **"Geen bestand gekoppeld" na herstarten van de browser**
-Klik "Bestand openen" en selecteer opnieuw je databestand. De app onthoudt het daarna opnieuw.
+De app toont het koppelscherm met drie knoppen. Klik **"🔓 Verleen toegang aan eerder gekozen bestand"** (groene knop) om opnieuw toegang te verlenen zonder het bestand opnieuw te selecteren. Lukt dat niet, gebruik dan **"📂 Bestaand bestand koppelen"**.
 
 **Verslag genereren mislukt**
 Controleer de API-sleutel in Instellingen → DefGPT. Als de sleutel correct is maar de aanroep toch mislukt, is DefGPT tijdelijk niet beschikbaar. Probeer de CORS-terugvalmodus (verschijnt als de aanroep faalt).
