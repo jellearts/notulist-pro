@@ -24,6 +24,7 @@ Search the `skills/` directory before applying a recurring pattern. Each skill i
 | Skill | Description | Tags |
 |-------|-------------|------|
 | [skill-example](skills/skill-example.md) | Placeholder skill; replace when project-specific recipes are added. | example |
+| [skill-tarbal-distributie](skills/skill-tarbal-distributie.md) | Tarbal aanmaken na een nieuwe build op workspace-root. | distributie, release |
 
 ## Adding a New Skill
 

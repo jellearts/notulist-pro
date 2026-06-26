@@ -39,5 +39,16 @@ Before declaring the session done, run through every item below and confirm:
 9. **Project-specific checklist**: execute any items from this project's own checklist.
 10. **Federated context audit**: run `/config/workspace/scripts/check_federated_context.sh` if the session added, removed, or restructured a project.
 11. **Workspace auto-memory**: write findings to `/config/.claude/projects/…/memory/`.
+12. **Tarbal na build**: Als er een nieuwe versie gebouwd of bijgewerkt is, maak dan een verse distributable aan op de workspace-root:
+    ```bash
+    tar -czf /config/workspace/notulist-pro.tar.gz \
+      -C "/config/workspace/Def Apps/Notulist-Pro" \
+      "notulist-pro.html" \
+      "react.min.js" \
+      "react-dom.min.js" \
+      "babel.min.js" \
+      "notulist-pro-data.json"
+    ```
+    Zie ook `skills/skill-tarbal-distributie.md`.
 
 Only answer the user after these steps are actually done.
