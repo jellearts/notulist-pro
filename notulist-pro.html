@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Notulist-Pro v1.1</title>
+  <title>Notulist-Pro v1.2</title>
   <!--
   ╔══════════════════════════════════════════════════════════════════╗
   ║  NOTULIST-PRO — CHANGELOG                                          ║
   ╠══════════════════════════════════════════════════════════════════╣
+  ║  v1.2 — 2026-06-26  MODEL-SELECTOR                                   ║
+  ║  • Model-keuze in instellingen vervangen door <select>-dropdown,     ║
+  ║    gelijk aan MeetingHero. Geen vrije invoer meer.                   ║
   ║  v1.1 — 2026-06-24  MAPPEN, FIXED TRANSCRIPT, MAP-KEUZE            ║
   ║  • Vergaderingen groeperen in mappen/projecten in de sidebar.     ║
   ║  • Mappen aanmaken, hernoemen en verwijderen in het zijmenu.      ║
@@ -61,13 +64,13 @@
   </style>
 </head>
 <body>
-<div id="root"><div style="font-family:sans-serif;text-align:center;padding:60px 20px;color:#64748B"><div style="font-size:20px;font-weight:700;color:#1B3A5C;margin-bottom:10px">Notulist-Pro v1.1</div><div>Laden...</div></div></div>
+<div id="root"><div style="font-family:sans-serif;text-align:center;padding:60px 20px;color:#64748B"><div style="font-size:20px;font-weight:700;color:#1B3A5C;margin-bottom:10px">Notulist-Pro v1.2</div><div>Laden...</div></div></div>
 <script>
 window.onerror=function(msg,src,line,col,err){document.getElementById("root").innerHTML='<div style="font-family:sans-serif;text-align:center;padding:60px 20px;color:#DC2626"><div style="font-size:20px;font-weight:700;margin-bottom:10px">JavaScript Fout</div><div>'+msg+'</div><div style="font-size:12px;color:#94A3B8;margin-top:10px">Regel '+line+'</div></div>';return false;};
 </script>
 <script type="text/babel">
 const{useState,useEffect,useLayoutEffect,useCallback,useMemo,useRef}=React;
-const APP_VERSION="1.1";
+const APP_VERSION="1.2";
 
 // ─── FILE SYSTEM ACCESS (patroon uit MeetingHero) ────
 const IDB_NAME="notulist-pro-v1-fs";
@@ -638,8 +641,7 @@ function SettingsView({settings,onUpd,onClose}){
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
             <div>
               <label style={LBL}>Model</label>
-              <input list="modellen" style={INP} value={s.defgptModel||""} onChange={e=>upd("defgptModel",e.target.value)}/>
-              <datalist id="modellen">{AVAILABLE_MODELS.map(m=><option key={m.id} value={m.id}>{m.label}</option>)}</datalist>
+              <select style={INP} value={s.defgptModel||""} onChange={e=>upd("defgptModel",e.target.value)}>{AVAILABLE_MODELS.map(m=><option key={m.id} value={m.id}>{m.label}</option>)}</select>
             </div>
             <div><label style={LBL}>API-sleutel (Bearer token)</label><input type="password" style={INP} value={s.defgptKey||""} onChange={e=>upd("defgptKey",e.target.value)} placeholder="Bearer token"/></div>
           </div>

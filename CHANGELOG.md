@@ -7,6 +7,12 @@
 
 # Notulist-Pro — CHANGELOG.md
 
+## 2026-06-26 — v1.2 released — model-selector dropdown
+- Model-keuze in instellingen vervangen door een `<select>`-dropdown, gelijk aan MeetingHero.
+- Vrije tekstinvoer (input + datalist) verwijderd; gebruiker kan alleen nog kiezen uit de beschikbare modellen.
+- `APP_VERSION` bijgewerkt naar `1.2`; title en loading screen bijgewerkt.
+- Backward compatible: `defgptModel` in data.json ongewijzigd.
+
 ## 2026-06-26 — Versie-mismatch fix in loading screen
 - Loading screen toonde "Notulist-Pro v1.0"; gecorrigeerd naar "Notulist-Pro v1.1" (overeenkomend met APP_VERSION en `<title>`).
 
