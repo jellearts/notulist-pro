@@ -14,6 +14,8 @@ tar -czf /config/workspace/notulist-pro.tar.gz \
   "notulist-pro-data.json"
 ```
 
+Als `/config/workspace/notulist-pro.tar.gz` al bestaat, wordt het zonder waarschuwing overschreven — dit is het gewenste gedrag.
+
 ## Verificatie
 
 ```bash
