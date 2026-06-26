@@ -3,11 +3,16 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Notulist-Pro v1.2</title>
+  <title>Notulist-Pro v1.3</title>
   <!--
   ╔══════════════════════════════════════════════════════════════════╗
   ║  NOTULIST-PRO — CHANGELOG                                          ║
   ╠══════════════════════════════════════════════════════════════════╣
+  ║  v1.3 — 2026-06-26  STARTUP-FIX FILE SYSTEM ACCESS                   ║
+  ║  • requestPermission() niet meer automatisch op load; alleen via     ║
+  ║    klikgebaar (browserbeveiligingsvereiste). Bij terugkeer toont     ║
+  ║    het koppelscherm een groene knop "Verleen toegang aan eerder      ║
+  ║    gekozen bestand".                                                  ║
   ║  v1.2 — 2026-06-26  MODEL-SELECTOR                                   ║
   ║  • Model-keuze in instellingen vervangen door <select>-dropdown,     ║
   ║    gelijk aan MeetingHero. Geen vrije invoer meer.                   ║
@@ -64,13 +69,13 @@
   </style>
 </head>
 <body>
-<div id="root"><div style="font-family:sans-serif;text-align:center;padding:60px 20px;color:#64748B"><div style="font-size:20px;font-weight:700;color:#1B3A5C;margin-bottom:10px">Notulist-Pro v1.2</div><div>Laden...</div></div></div>
+<div id="root"><div style="font-family:sans-serif;text-align:center;padding:60px 20px;color:#64748B"><div style="font-size:20px;font-weight:700;color:#1B3A5C;margin-bottom:10px">Notulist-Pro v1.3</div><div>Laden...</div></div></div>
 <script>
 window.onerror=function(msg,src,line,col,err){document.getElementById("root").innerHTML='<div style="font-family:sans-serif;text-align:center;padding:60px 20px;color:#DC2626"><div style="font-size:20px;font-weight:700;margin-bottom:10px">JavaScript Fout</div><div>'+msg+'</div><div style="font-size:12px;color:#94A3B8;margin-top:10px">Regel '+line+'</div></div>';return false;};
 </script>
 <script type="text/babel">
 const{useState,useEffect,useLayoutEffect,useCallback,useMemo,useRef}=React;
-const APP_VERSION="1.2";
+const APP_VERSION="1.3";
 
 // ─── FILE SYSTEM ACCESS (patroon uit MeetingHero) ────
 const IDB_NAME="notulist-pro-v1-fs";
@@ -80,8 +85,9 @@ async function storeHandle(h){try{const db=await openIdb();return new Promise(re
 function fsSupported(){return typeof window.showOpenFilePicker==="function"&&typeof window.showSaveFilePicker==="function";}
 async function selectDataFile(){try{const[handle]=await window.showOpenFilePicker({types:[{description:"JSON Data",accept:{"application/json":[".json"]}}],startIn:"documents"});await storeHandle(handle);const file=await handle.getFile();const text=await file.text();if(!text.trim()){const w=await handle.createWritable();await w.write(JSON.stringify(getDefaultData(),null,2));await w.close();}return true;}catch(e){if(e.name!=="AbortError")console.error(e);return false;}}
 async function createDataFile(){try{const handle=await window.showSaveFilePicker({suggestedName:"notulist-pro-data.json",types:[{description:"JSON Data",accept:{"application/json":[".json"]}}],startIn:"documents"});await storeHandle(handle);const w=await handle.createWritable();await w.write(JSON.stringify(getDefaultData(),null,2));await w.close();return true;}catch(e){if(e.name!=="AbortError")console.error(e);return false;}}
+async function checkPermission(h){const opts={mode:"readwrite"};return(await h.queryPermission(opts))==="granted";}
 async function ensurePermission(h){const opts={mode:"readwrite"};if((await h.queryPermission(opts))==="granted")return true;return(await h.requestPermission(opts))==="granted";}
-async function readData(){const h=await getStoredHandle();if(!h)return null;if(!(await ensurePermission(h)))return null;const file=await h.getFile();const data=ensureDataShape(JSON.parse(await file.text()));data.__mtime=file.lastModified;return data;}
+async function readData(){const h=await getStoredHandle();if(!h)return null;if(!(await checkPermission(h)))return null;const file=await h.getFile();const data=ensureDataShape(JSON.parse(await file.text()));data.__mtime=file.lastModified;return data;}
 async function writeData(data){const h=await getStoredHandle();if(!h)throw new Error("Geen databestand gekoppeld");await ensurePermission(h);const out={...data};delete out.__mtime;const w=await h.createWritable();await w.write(JSON.stringify(out,null,2));await w.close();try{const f=await h.getFile();return f.lastModified;}catch{return Date.now();}}
 async function getFileMtime(){const h=await getStoredHandle();if(!h)return null;try{const f=await h.getFile();return f.lastModified;}catch{return null;}}
 async function fileName(){const h=await getStoredHandle();return h?h.name:null;}
@@ -377,9 +383,12 @@ function useData(){
 // ─── KOPPELSCHERM ────────────────────────────────────
 function KoppelScherm({onKlaar}){
   const[bezig,setBezig]=useState(false);
+  const[heeftHandle,setHeeftHandle]=useState(false);
   const support=fsSupported();
+  useEffect(()=>{getStoredHandle().then(h=>setHeeftHandle(!!h));},[]);
   async function kies(){setBezig(true);if(await selectDataFile())onKlaar();setBezig(false);}
   async function nieuw(){setBezig(true);if(await createDataFile())onKlaar();setBezig(false);}
+  async function herstel(){setBezig(true);const h=await getStoredHandle();if(h&&await ensurePermission(h))onKlaar();else setBezig(false);}
   return(
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
       <div style={{maxWidth:540,width:"100%",background:"#FFF",border:"1px solid var(--border)",borderRadius:14,padding:32,boxShadow:"var(--shadow-md)"}}>
@@ -387,6 +396,7 @@ function KoppelScherm({onKlaar}){
         <div style={{color:"var(--text-secondary)",fontSize:14,marginBottom:22,lineHeight:1.6}}>Transcript erin, professioneel vergaderverslag eruit. Koppel eerst een databestand. Dit bestand bewaart al je vergaderingen en instellingen en mag op een netwerkschijf staan.</div>
         {!support&&<div style={{background:"#FEF2F2",border:"1px solid #FCA5A5",borderRadius:8,padding:"10px 14px",fontSize:13,color:"#DC2626",marginBottom:16}}>Deze browser ondersteunt de File System Access API niet. Gebruik Edge of Chrome.</div>}
         <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+          {heeftHandle&&<button disabled={bezig||!support} className="btn-hover" onClick={herstel} style={btnStyle("var(--success)","#FFF")}>🔓 Verleen toegang aan eerder gekozen bestand</button>}
           <button disabled={bezig||!support} className="btn-hover" onClick={nieuw} style={btnStyle("var(--primary)","#FFF")}>＋ Nieuw databestand aanmaken</button>
           <button disabled={bezig||!support} className="btn-hover" onClick={kies} style={btnStyle("var(--muted)","var(--text)")}>📂 Bestaand bestand koppelen</button>
         </div>

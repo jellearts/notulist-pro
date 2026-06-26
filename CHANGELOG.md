@@ -7,6 +7,13 @@
 
 # Notulist-Pro — CHANGELOG.md
 
+## 2026-06-26 — v1.3 released — startup-fix File System Access
+- `requestPermission()` wordt niet meer automatisch aangeroepen bij het laden van de pagina (veroorzaakte een browser `SecurityError` omdat user activation vereist is).
+- `checkPermission()` toegevoegd: controleert alleen via `queryPermission` of toegang al verleend is — veilig voor auto-load.
+- `readData()` gebruikt nu `checkPermission` in plaats van `ensurePermission`; bij afwezige permissie wordt stil `null` teruggegeven.
+- `KoppelScherm` toont een groene knop "🔓 Verleen toegang aan eerder gekozen bestand" als er een opgeslagen handle in IndexedDB staat — de klik is het vereiste gebruikersgebaar voor `requestPermission`.
+- `APP_VERSION` bijgewerkt naar `1.3`.
+
 ## 2026-06-26 — v1.2 released — model-selector dropdown
 - Model-keuze in instellingen vervangen door een `<select>`-dropdown, gelijk aan MeetingHero.
 - Vrije tekstinvoer (input + datalist) verwijderd; gebruiker kan alleen nog kiezen uit de beschikbare modellen.
