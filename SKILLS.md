@@ -25,6 +25,7 @@ Search the `skills/` directory before applying a recurring pattern. Each skill i
 |-------|-------------|------|
 | [skill-example](skills/skill-example.md) | Placeholder skill; replace when project-specific recipes are added. | example |
 | [skill-tarbal-distributie](skills/skill-tarbal-distributie.md) | Tarbal aanmaken na een nieuwe build op workspace-root. | distributie, release |
+| [skill-offline-pdf-word-export](skills/skill-offline-pdf-word-export.md) | Offline PDF (print-naar-PDF via iframe) en Word (.doc HTML) export zonder externe libraries. | export, pdf, word, offline |
 
 ## Adding a New Skill
 

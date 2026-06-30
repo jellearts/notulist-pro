@@ -9,10 +9,10 @@
 
 ## Active State
 
-- **Current version**: v1.1 live.
-- **Laatste werk**: mappen/projecten toegevoegd aan de sidebar, fixed-height transcriptveld, optionele map-koppeling voor vergaderingen.
+- **Current version**: v1.5 live (branch `feat/dynamische-model-selector`).
+- **Laatste werk**: v1.5 — PDF-export (native print-naar-PDF via verborgen iframe), Word-export (.doc via MS Word-compatible HTML), nettere verslagopmaak (##-secties in standaard-prompt, opschoon spurious `<br/>`, documentkaart-stijl). Plan gearchiveerd: `archive/PLAN_pdf-word-export_30_06_2026.md`.
 - **Git**: repo gepusht naar `https://github.com/jellearts/notulist-pro`.
-- **Plan**: `PLAN_mappen_en_ui_24_06_2026.md` is gearchiveerd in `archive/`.
+- **Eerdere plannen**: `PLAN_mappen_en_ui_24_06_2026.md` gearchiveerd in `archive/`.
 
 ## Architectural Pitfalls
 
