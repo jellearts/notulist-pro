@@ -3,11 +3,18 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Notulist-Pro v1.3</title>
+  <title>Notulist-Pro v1.4</title>
   <!--
   ╔══════════════════════════════════════════════════════════════════╗
   ║  NOTULIST-PRO — CHANGELOG                                          ║
   ╠══════════════════════════════════════════════════════════════════╣
+  ║  v1.4 — 2026-06-30  DYNAMISCHE MODEL-SELECTOR                       ║
+  ║  • Instellingen haalt de beschikbare DefGPT-modellen live op via     ║
+  ║    de API (GET …/api/models) en vult de selector daarmee. Knop      ║
+  ║    "🔄 Haal modellen op" voor handmatige vernieuwing.                ║
+  ║  • Fallback: reageert de API niet of leeg, dan wordt de complete     ║
+  ║    hardcoded lijst (5 modellen) getoond. Opgeslagen modelkeuze       ║
+  ║    blijft altijd selecteerbaar.                                     ║
   ║  v1.3 — 2026-06-26  STARTUP-FIX FILE SYSTEM ACCESS                   ║
   ║  • requestPermission() niet meer automatisch op load; alleen via     ║
   ║    klikgebaar (browserbeveiligingsvereiste). Bij terugkeer toont     ║
@@ -75,7 +82,7 @@ window.onerror=function(msg,src,line,col,err){document.getElementById("root").in
 </script>
 <script type="text/babel">
 const{useState,useEffect,useLayoutEffect,useCallback,useMemo,useRef}=React;
-const APP_VERSION="1.3";
+const APP_VERSION="1.4";
 
 // ─── FILE SYSTEM ACCESS (patroon uit MeetingHero) ────
 const IDB_NAME="notulist-pro-v1-fs";
@@ -180,7 +187,30 @@ function isCorsError(e){return e.message.includes("Failed to fetch")||e.message.
 const AVAILABLE_MODELS=[
   {id:"DefGPT-Chat-gpt-oss-120b",label:"gpt-oss-120b — standaard (75K context)"},
   {id:"DefGPT-Chat-gemma-4-31B-it",label:"gemma-4-31B-it — superuser (256K context, voor grote transcripts)"},
+  {id:"DefGPT-Code-Qwen-2-5-Coder-3B",label:"Code-Qwen-2-5-Coder-3B — code"},
+  {id:"DefGPT-RAG-llama3-2-1B",label:"RAG-llama3-2-1B — RAG"},
+  {id:"DefGPT-Embedding-nomic-embed-text-v2-moe",label:"Embedding-nomic-embed-text-v2-moe — embeddings"},
 ];
+// Lookup-tabel voor leesbare labels bij uit de API opgehaalde model-id's.
+const MODEL_LABELS=Object.fromEntries(AVAILABLE_MODELS.map(m=>[m.id,m.label]));
+
+// ─── MODELEN OPHALEN VIA API ──────────────────────────
+// Leidt het /models-endpoint af van het chat/completions-endpoint en haalt de
+// actueel beschikbare modellen op. Faalt (throw) bij CORS/netwerk/auth, zodat
+// de aanroeper kan terugvallen op de hardcoded AVAILABLE_MODELS-lijst.
+async function fetchDefGptModellen(endpoint,key){
+  if(!endpoint) throw new Error("Geen endpoint");
+  const base=endpoint.replace(/\/chat\/completions\/?$/,"");
+  if(base===endpoint) throw new Error("Endpoint niet herkend");
+  const url=base+"/models";
+  const resp=await fetch(url,{headers:{Authorization:`Bearer ${key||""}`}});
+  if(!resp.ok) throw new Error("HTTP "+resp.status);
+  const j=await resp.json();
+  const arr=Array.isArray(j)?j:(j.data||j.models||[]);
+  const ids=arr.map(m=>typeof m==="string"?m:(m&&(m.id||m.name||m.model))).filter(Boolean);
+  if(!ids.length) throw new Error("Geen modellen in response");
+  return ids;
+}
 
 // ─── DEFAULT PROMPTS ─────────────────────────────────
 const DEFAULT_SYSTEM_PROMPT="Je bent een ervaren notulist die professionele, zakelijke Nederlandse vergaderverslagen schrijft. Je verzint geen feiten die niet in de bron staan en je vermeldt onzekerheden expliciet.";
@@ -234,6 +264,7 @@ function getDefaultData(){return{
     defgptEndpoint:"https://pro.defgpt.data.mindef.nl/api/chat/completions",
     defgptKey:"",
     defgptModel:"DefGPT-Chat-gpt-oss-120b",
+    defgptBeschikbareModellen:AVAILABLE_MODELS,
     systemPrompt:DEFAULT_SYSTEM_PROMPT,
     verslagPrompt:DEFAULT_VERSLAG_PROMPT,
     maxTokens:4000,
@@ -309,6 +340,11 @@ function Modal({title,onClose,children,wide}){
 
 // ─── CHANGELOG ───────────────────────────────────────
 const CHANGELOG=[
+  {versie:"1.4",datum:"2026-06-30",compat:"backward compatible — ontbrekende defgptBeschikbareModellen wordt aangevuld",punten:[
+    "Model-selector haalt beschikbare modellen live op via de DefGPT API (GET …/api/models).",
+    "Knop \"🔄 Haal modellen op\" in instellingen voor handmatige vernieuwing; auto-ophalen bij openen als endpoint+key bekend zijn.",
+    "Fallback op de complete hardcoded lijst (5 modellen) als de API niet reageert of leeg is; gekozen model blijft altijd selecteerbaar.",
+  ]},
   {versie:"1.1",datum:"2026-06-24",compat:"backward compatible — oude data zonder folders wordt automatisch gemigreerd",punten:[
     "Vergaderingen groeperen in mappen/projecten in de sidebar.",
     "Mappen aanmaken, hernoemen en verwijderen in het zijmenu.",
@@ -627,8 +663,32 @@ function SettingsView({settings,onUpd,onClose}){
   const[s,setS]=useState(settings);
   const[testStatus,setTestStatus]=useState("");
   const[logOpen,setLogOpen]=useState(false);
+  // Lijst met gekozen modellen: start met opgeslagen lijst, anders hardcoded
+  // AVAILABLE_MODELS. Wordt gevuld vanuit de API (zie haalModellen), met
+  // fallback op de hardcoded lijst als de API niet reageert of leeg is.
+  const[modellen,setModellen]=useState(()=>Array.isArray(settings.defgptBeschikbareModellen)&&settings.defgptBeschikbareModellen.length?settings.defgptBeschikbareModellen:AVAILABLE_MODELS);
+  const[modellenStatus,setModellenStatus]=useState("");
   function upd(k,v){setS(prev=>({...prev,[k]:v}));}
   function bewaar(){onUpd(s);onClose();}
+  async function haalModellen(){
+    setModellenStatus("⏳ Ophalen...");
+    try{
+      const ids=await fetchDefGptModellen(s.defgptEndpoint,s.defgptKey);
+      // Voeg hardcoded modellen toe zodat niets verdwijnt; label via lookup.
+      const merged=[...new Set([...ids,...AVAILABLE_MODELS.map(m=>m.id)])]
+        .map(id=>({id,label:MODEL_LABELS[id]||id}));
+      setModellen(merged);
+      setS(prev=>({...prev,defgptBeschikbareModellen:merged}));
+      setModellenStatus(`✓ ${ids.length} modellen opgehaald`);
+    }catch(e){
+      // Fallback: blijf de hardcoded/opgeslagen lijst tonen.
+      setModellen(AVAILABLE_MODELS);
+      setS(prev=>({...prev,defgptBeschikbareModellen:AVAILABLE_MODELS}));
+      setModellenStatus(isCorsError(e)?"⚠ API niet bereikbaar (CORS) — hardcoded lijst gebruikt":("⚠ "+e.message+" — hardcoded lijst gebruikt"));
+    }
+  }
+  // Auto-ophalen bij openen als endpoint+key bekend zijn.
+  useEffect(()=>{if(s.defgptEndpoint&&(s.defgptKey||"").length>0){haalModellen();}/*eslint-disable-next-line*/},[]);
   async function test(){
     setTestStatus("Testen...");
     try{const out=await callDefGPT(s.defgptEndpoint,s.defgptKey,s.defgptModel,"Je bent een testassistent.","Antwoord met exact: OK",50,0);setTestStatus(out.toLowerCase().includes("ok")?"✓ Verbinding werkt":"✓ Antwoord ontvangen: "+out.slice(0,40));}
@@ -651,9 +711,16 @@ function SettingsView({settings,onUpd,onClose}){
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
             <div>
               <label style={LBL}>Model</label>
-              <select style={INP} value={s.defgptModel||""} onChange={e=>upd("defgptModel",e.target.value)}>{AVAILABLE_MODELS.map(m=><option key={m.id} value={m.id}>{m.label}</option>)}</select>
+              <select style={INP} value={s.defgptModel||""} onChange={e=>upd("defgptModel",e.target.value)}>
+                {/* Huidig model altijd tonen, ook als het niet in de lijst staat */}
+                {(()=>{const ids=[...modellen.map(m=>m.id)];if(s.defgptModel&&!ids.includes(s.defgptModel))ids.unshift(s.defgptModel);const seen=new Set();return ids.filter(id=>{if(seen.has(id))return false;seen.add(id);return true;}).map(id=>{const m=modellen.find(x=>x.id===id);return<option key={id} value={id}>{m?m.label:(MODEL_LABELS[id]||id)}</option>;});})()}
+              </select>
             </div>
             <div><label style={LBL}>API-sleutel (Bearer token)</label><input type="password" style={INP} value={s.defgptKey||""} onChange={e=>upd("defgptKey",e.target.value)} placeholder="Bearer token"/></div>
+          </div>
+          <div style={{display:"flex",gap:10,alignItems:"center",marginTop:2,marginBottom:6,flexWrap:"wrap"}}>
+            <button className="btn-hover" onClick={haalModellen} style={btnStyle("var(--muted)","var(--text)",true)}>🔄 Haal modellen op</button>
+            {modellenStatus&&<span style={{fontSize:12,color:"var(--text-secondary)"}}>{modellenStatus}</span>}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             <div><label style={LBL}>Max tokens (antwoordlengte)</label><input type="number" style={INP} value={s.maxTokens||4000} onChange={e=>upd("maxTokens",parseInt(e.target.value)||4000)}/></div>

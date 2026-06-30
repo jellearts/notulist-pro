@@ -1,11 +1,20 @@
 ---
 # CHANGELOG.md - Notulist-Pro
-**Context**: Part of the federated server structure located at `/config/workspace/Def Apps/Notulist-Pro/`. Generated from `/config/workspace/templates/project-context/CHANGELOG.md`.
-**Relationship**: Guided by root `/config/workspace/CHANGELOG.md` and `/config/workspace/Def Apps/CHANGELOG.md`. Interacts closely with the other 4 local context files.
+**Context**: Part of the federated server structure located at `/config/workspace/DefApps/Notulist-Pro/`. Generated from `/config/workspace/templates/project-context/CHANGELOG.md`.
+**Relationship**: Guided by root `/config/workspace/CHANGELOG.md` and `/config/workspace/DefApps/CHANGELOG.md`. Interacts closely with the other 4 local context files.
 **Purpose**: Append-only chronological history of changes, releases and operational events for Notulist-Pro.
 ---
 
 # Notulist-Pro — CHANGELOG.md
+
+## 2026-06-30 — v1.4 — Dynamische model-selector (API + fallback)
+- Instellingen → DefGPT: de model-selector haalt de beschikbare modellen live op via de DefGPT API (`GET …/api/models`, Bearer auth) en vult de dropdown daarmee.
+- Nieuwe knop "🔄 Haal modellen op" in instellingen voor handmatige vernieuwing; auto-ophalen bij openen van instellingen als endpoint+key bekend zijn.
+- Fallback: reageert de API niet (CORS/netwerk/auth) of geeft geen modellen, dan wordt de complete hardcoded lijst getoond (5 modellen, uitgebreid van 2 naar 5).
+- `fetchDefGptModellen(endpoint,key)` leidt het `/models`-endpoint af van het `chat/completions`-endpoint en normaliseert `{data:[]}` / `[]` / `{models:[]}` en string- zowel als object-items.
+- Het gekozen model blijft altijd selecteerbaar, ook als het niet in de opgehaalde lijst staat.
+- Nieuwe instelling `defgptBeschikbareModellen` (backward compatible — wordt aangevuld als hij ontbreekt).
+- Zie `/config/workspace/DefApps/PLAN_model-selector-dynamisch_30_06_2026.md`.
 
 ## 2026-06-26 — v1.3 released — startup-fix File System Access
 - `requestPermission()` wordt niet meer automatisch aangeroepen bij het laden van de pagina (veroorzaakte een browser `SecurityError` omdat user activation vereist is).
