@@ -79,7 +79,7 @@ Dubbelklik `notulist-pro.html` of open het via Edge/Chrome (`Bestand → Openen`
 3. **Verslag genereren**: klik "Genereer verslag". DefGPT verwerkt het transcript en geeft een gestructureerd verslag terug.
 4. **Beoordelen en bewerken**: het verslag verschijnt als opgemaakte HTML. Klik "Bewerk" om tekst, besluiten of actiepunten aan te passen.
 5. **Opslaan**: klik "Opslaan". Het verslag wordt bewaard in het databestand.
-6. **Exporteren**: klik "HTML" om het verslag als los `.html`-document te downloaden, klaar voor verspreiding of archivering.
+6. **Exporteren**: klik "HTML", "PDF" of "Word" om het verslag als los document te downloaden, klaar voor verspreiding of archivering.
 
 ---
 
@@ -93,6 +93,10 @@ Het gegenereerde verslag is volledig bewerkbaar in de app via de ingebouwde rich
 Het bewerkte verslag wordt opgeslagen in het databestand zodra je op "Opslaan" klikt.
 
 **HTML-export** produceert een zelfstandig `.html`-bestand met ingebedde opmaak (Calibri-stijl, Defensie-kleuren), geschikt voor e-mail of archivering.
+
+**PDF-export** opent de afdrukdialoog van de browser met een net gestileerd verslag; kies daar "Opslaan als PDF". Vector-tekst, echte koppen en tabellen, selecteerbaar. Werkt volledig offline, zonder externe libraries.
+
+**Word-export** levert een `.doc`-bestand (MS Word-compatible HTML) met echte koppen, alinea's en tabellen, inclusief navigatiepaneel (`mso-outline-level`). Opent direct in Word en is volledig bewerkbaar.
 
 ---
 

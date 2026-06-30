@@ -7,6 +7,19 @@
 
 # Notulist-Pro — CHANGELOG.md
 
+## 2026-06-30 — v1.5 — PDF/Word-export + nettere verslagopmaak
+- **PDF-export**: nieuw `exportVerslagPDF(meeting)` exporteert het verslag als PDF via native print-naar-PDF (verborgen iframe + `window.print()`). Vector-tekst, echte koppen/tabellen, selecteerbaar, 0 externe libraries — volledig offline (Mulan air-gapped). Print-CSS met `@page`-marges en `break-inside:avoid` voor tabellen.
+- **Word-export**: nieuw `exportVerslagWord(meeting)` levert een `.doc` (MS Word-compatible HTML met `xmlns:o/w`, `mso-outline-level` per kop, `@page A4`, pt-eenheden, `border-collapse`-tabellen). Opent netjes in Word, volledig bewerkbaar, echte `<h1>/<h2>/<p>/<table>`-elementen.
+- **Gedeelde stijl-helper**: `verslagDocumentHtml(meeting, mode)` (`html`/`print`/`word`) + `VERSLAG_CSS` + `verslagBestandsnaam(meeting, ext)` hergebruikt door HTML-, PDF- en Word-export. Bestaande `exportVerslagHTML` behouden.
+- **Nettere verslagopmaak** (reden: weergave oogde rommelig vergeleken met MeetingHero):
+  - Standaard verslag-prompt herschreven: gebruikt nu `##` voor secties (was `#` per sectie → overmatige grote H1-koppen met onderstreping). Eén H1-titel wordt door de export-wrapper toegevoegd. `-` bullets, `###` voor deelonderwerpen.
+  - `renderMarkdown` ruimt overtollige `<br/>` op die tussen blokelementen ontstonden (`</h2><br/><ul>` → `</h2><ul>`); geen ongewenste extra witruimte meer.
+  - `.report-view`-CSS verfijnd (`line-height:1.6`, `:first-child`/`:first-of-type`-marge, `ol`, geneste lijsten, `blockquote`, `strong`).
+  - Verslag-weergave in niet-bewerkmodus is nu een witte documentkaart (rand, padding, border-radius) in plaats van kale `padding:0 2px`.
+- **UI**: knoppen "⬇ PDF" en "⬇ Word" naast bestaande "⬇ HTML" in de verslag-header.
+- Backward compatible: datamodel ongewijzigd; bestaande verslagen en opgeslagen prompts blijven werken. Voor de nieuwe sectiestructuur: reset de verslag-prompt via "↺ Standaard" in instellingen.
+- Zie `PLAN_pdf-word-export_30_06_2026.md`.
+
 ## 2026-06-30 — v1.4 — Dynamische model-selector (API + fallback)
 - Instellingen → DefGPT: de model-selector haalt de beschikbare modellen live op via de DefGPT API (`GET …/api/models`, Bearer auth) en vult de dropdown daarmee.
 - Nieuwe knop "🔄 Haal modellen op" in instellingen voor handmatige vernieuwing; auto-ophalen bij openen van instellingen als endpoint+key bekend zijn.

@@ -1,6 +1,6 @@
 # PLAN — Mappen/projecten en UI-verbeteringen Notulist-Pro
 
-**Project**: /config/workspace/Def Apps/Notulist-Pro  
+**Project**: /config/workspace/DefApps/Notulist-Pro  
 **Versie-doel**: v1.1  
 **Datum**: 24-06-2026  
 **Auteur**: Claude Code
@@ -112,7 +112,7 @@ Het huidige `AutoTextarea`-component rekt automatisch mee. Voor het transcript v
   - het transcript-veld niet meer uitrekt,
   - het databestand correct wordt weggeschreven,
   - de migratie van een oud databestand zonder mappen foutloos verloopt.
-- [ ] **5.13** Archiveer dit plan in `/config/workspace/Def Apps/Notulist-Pro/archive/` en vermeld het in `CHANGELOG.md`.
+- [ ] **5.13** Archiveer dit plan in `/config/workspace/DefApps/Notulist-Pro/archive/` en vermeld het in `CHANGELOG.md`.
 
 ---
 

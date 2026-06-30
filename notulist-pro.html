@@ -3,11 +3,24 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Notulist-Pro v1.4</title>
+  <title>Notulist-Pro v1.5</title>
   <!--
   ╔══════════════════════════════════════════════════════════════════╗
   ║  NOTULIST-PRO — CHANGELOG                                          ║
   ╠══════════════════════════════════════════════════════════════════╣
+  ║  v1.5 — 2026-06-30  PDF/WORD-EXPORT + NETTERE VERSLAGOPMAAK         ║
+  ║  • Verslag exporteren als PDF (native print-naar-PDF via verborgen   ║
+  ║    iframe, vector-tekst, geen externe libraries — offline).          ║
+  ║  • Verslag exporteren als Word (.doc, MS Word-compatible HTML met    ║
+  ║    mso-outline-level, echte koppen/tabellen, volledig bewerkbaar).  ║
+  ║  • Gedeelde stijl-helper (verslagDocumentHtml) voor HTML/PDF/Word.  ║
+  ║  • Nettere verslagopmaak: standaard-prompt gebruikt ##-secties      ║
+  ║    (was # per sectie = overmatige H1-koppen), documentkaart-stijl   ║
+  ║    in de weergave, opschoon van overtollige <br/> tussen blokken.   ║
+  ║  • Bestaande HTML-export behouden; knoppen PDF/Word naast HTML.     ║
+  ║  Backward compatible: oude data en opgeslagen prompts blijven       ║
+  ║  werken. Reset de verslag-prompt (↺ Standaard) voor de nieuwe       ║
+  ║  sectiestructuur.                                                   ║
   ║  v1.4 — 2026-06-30  DYNAMISCHE MODEL-SELECTOR                       ║
   ║  • Instellingen haalt de beschikbare DefGPT-modellen live op via     ║
   ║    de API (GET …/api/models) en vult de selector daarmee. Knop      ║
@@ -62,13 +75,19 @@
     textarea{resize:vertical;}
     .hover-card{transition:box-shadow .15s,transform .15s;}.hover-card:hover{box-shadow:var(--shadow-md);}
     @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}.pulse{animation:pulse 1.2s infinite;}
+    .report-view{font-size:14px;line-height:1.6;color:var(--text);}
     .report-view h1{font-size:22px;border-bottom:2px solid var(--primary);padding-bottom:8px;margin:18px 0 14px;}
+    .report-view h1:first-child{margin-top:0;}
     .report-view h2{font-size:17px;margin:22px 0 8px;color:var(--primary);}
+    .report-view h2:first-of-type{margin-top:4px;}
     .report-view h3{font-size:14px;margin:16px 0 5px;color:#334155;}
     .report-view h4{font-size:13px;margin:12px 0 4px;color:#475569;}
     .report-view p{margin:0 0 10px;}
-    .report-view ul{margin:8px 0 12px 20px;}
-    .report-view li{margin:2px 0;}
+    .report-view ul,.report-view ol{margin:8px 0 12px 22px;padding:0;}
+    .report-view li{margin:3px 0;}
+    .report-view ul ul,.report-view ol ol,.report-view ul ol,.report-view ol ul{margin:4px 0 4px 18px;}
+    .report-view strong{font-weight:700;}
+    .report-view blockquote{border-left:3px solid var(--border);margin:8px 0;padding:2px 0 2px 12px;color:var(--text-secondary);}
     .report-view table{border-collapse:collapse;width:100%;margin:12px 0;font-size:13px;}
     .report-view th,.report-view td{border:1px solid #CBD5E1;padding:8px;text-align:left;vertical-align:top;}
     .report-view th{background:#F1F5F9;font-weight:600;}
@@ -82,7 +101,7 @@ window.onerror=function(msg,src,line,col,err){document.getElementById("root").in
 </script>
 <script type="text/babel">
 const{useState,useEffect,useLayoutEffect,useCallback,useMemo,useRef}=React;
-const APP_VERSION="1.4";
+const APP_VERSION="1.5";
 
 // ─── FILE SYSTEM ACCESS (patroon uit MeetingHero) ────
 const IDB_NAME="notulist-pro-v1-fs";
@@ -150,6 +169,11 @@ function renderMarkdown(md){
     });
     return parts.join("");
   });
+  // Ruim overtollige <br/> op die tussen blokelementen (h, ul, table, p, ...) zijn
+  // ontstaan door \n -> <br/>. Ze geven anders ongewenste extra witruimte.
+  html=html.replace(/(<\/(?:h[1-6]|ul|ol|li|table|thead|tbody|tr|td|th|pre|blockquote|p|div)>)\s*<br\s*\/?>/gi,"$1");
+  html=html.replace(/<br\s*\/?>\s*(<(?:h[1-6]|ul|ol|table|thead|tbody|tr|pre|blockquote|p|div)\b)/gi,"$1");
+  html=html.replace(/(<br\s*\/?>\s*){3,}/gi,"<br/><br/>");
   return html;
 }
 function reportHtml(meeting){
@@ -157,10 +181,72 @@ function reportHtml(meeting){
   if(meeting.verslagMd&&meeting.verslagMd.trim())return renderMarkdown(meeting.verslagMd);
   return "";
 }
-function exportVerslagHTML(meeting){
+// Bestandsnaam voor exports: verslag-<slug>-<datum><ext>
+function verslagBestandsnaam(meeting,ext){
+  const slug=(meeting.naam||"vergadering").slice(0,40).replace(/[^a-zA-Z0-9]/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"");
+  return"verslag-"+slug+"-"+(meeting.datum||todayISO())+ext;
+}
+// Gedeelde CSS voor de standalone HTML-export (scherm + afdruk).
+const VERSLAG_CSS=`
+body{font-family:Calibri,'Segoe UI',Arial,sans-serif;max-width:900px;margin:40px auto;color:#1B3A5C;line-height:1.6;padding:0 20px}
+h1{font-size:24px;border-bottom:2px solid #1B3A5C;padding-bottom:8px;margin-bottom:16px}
+h2{font-size:18px;margin-top:24px;margin-bottom:10px;color:#1B3A5C}
+h3{font-size:15px;margin-top:18px;margin-bottom:6px;color:#334155}
+h4{font-size:14px;margin-top:14px;margin-bottom:4px;color:#475569}
+.meta{color:#64748B;font-size:13px;margin-bottom:24px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:13px}
+th,td{border:1px solid #CBD5E1;padding:8px;text-align:left;vertical-align:top}
+th{background:#F1F5F9;font-weight:600}
+ul{margin:8px 0 12px 18px;padding:0}
+p{margin:0 0 10px 0}
+@media print{@page{margin:1.8cm}body{margin:0;max-width:none;padding:0}h2,h3,h4{break-after:avoid}table,tr{break-inside:avoid}}
+`;
+// Bouwt de volledige HTML-pagina van het verslag. mode: "html" (standalone), "print" (PDF), "word" (.doc).
+function verslagDocumentHtml(meeting,mode){
   const inner=reportHtml(meeting);
-  const html=`<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"><title>Vergaderverslag ${escapeHtml(meeting.naam)}</title><style>body{font-family:Calibri,Arial,sans-serif;max-width:900px;margin:40px auto;color:#1B3A5C;line-height:1.6;padding:0 20px}h1{font-size:24px;border-bottom:2px solid #1B3A5C;padding-bottom:8px;margin-bottom:16px}h2{font-size:18px;margin-top:24px;margin-bottom:10px;color:#1B3A5C}h3{font-size:15px;margin-top:18px;margin-bottom:6px;color:#334155}h4{font-size:14px;margin-top:14px;margin-bottom:4px;color:#475569}.meta{color:#64748B;font-size:13px;margin-bottom:24px}table{border-collapse:collapse;width:100%;margin:12px 0;font-size:13px}th,td{border:1px solid #CBD5E1;padding:8px;text-align:left;vertical-align:top}th{background:#F1F5F9;font-weight:600}ul{margin:8px 0 12px 18px;padding:0}p{margin:0 0 10px 0}</style></head><body><h1>Vergaderverslag: ${escapeHtml(meeting.naam)}</h1><div class="meta">Datum: ${fmtDatum(meeting.datum)}</div>${inner}</body></html>`;
-  const blob=new Blob([html],{type:"text/html;charset=utf-8;"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="verslag-"+(meeting.naam||"vergadering").slice(0,40).replace(/[^a-zA-Z0-9]/g,"-")+"-"+meeting.datum+".html";a.click();URL.revokeObjectURL(url);
+  const titel="Vergaderverslag: "+(meeting.naam||"");
+  const body=`<h1>${escapeHtml(meeting.naam||"Vergaderverslag")}</h1><div class="meta">Datum: ${fmtDatum(meeting.datum)}</div>${inner}`;
+  if(mode==="word"){
+    // MS Word-compatible HTML (.doc). pt-eenheden, mso-outline-level voor navigatiepaneel.
+    return`<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><title>${escapeHtml(titel)}</title><!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]--><style>
+@page WordSection1{size:A4;margin:2cm;}
+div.WordSection1{page:WordSection1;}
+body{font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#1B3A5C;line-height:1.4;}
+h1{font-size:20pt;color:#1B3A5C;border-bottom:2pt solid #1B3A5C;padding-bottom:3pt;margin:0 0 10pt 0;mso-outline-level:1;}
+h2{font-size:14pt;color:#1B3A5C;margin:14pt 0 6pt 0;mso-outline-level:2;}
+h3{font-size:12pt;color:#334155;margin:12pt 0 4pt 0;mso-outline-level:3;}
+h4{font-size:11pt;color:#475569;margin:10pt 0 4pt 0;mso-outline-level:4;}
+p{margin:0 0 8pt 0;}
+.meta{color:#64748B;font-size:10pt;margin-bottom:12pt;}
+table{border-collapse:collapse;width:100%;margin:8pt 0;font-size:10pt;mso-table-lspace:0pt;mso-table-rspace:0pt;}
+th,td{border:0.5pt solid #94A3B8;padding:5pt;text-align:left;vertical-align:top;}
+th{background:#F1F5F9;font-weight:bold;}
+ul{margin:6pt 0 8pt 18pt;}
+</style></head><body><div class="WordSection1">${body}</div></body></html>`;
+  }
+  return`<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"><title>${escapeHtml(titel)}</title><style>${VERSLAG_CSS}</style></head><body>${body}</body></html>`;
+}
+function exportVerslagHTML(meeting){
+  const html=verslagDocumentHtml(meeting,"html");
+  const blob=new Blob([html],{type:"text/html;charset=utf-8;"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=verslagBestandsnaam(meeting,".html");a.click();URL.revokeObjectURL(url);
+}
+function exportVerslagPDF(meeting){
+  const html=verslagDocumentHtml(meeting,"print");
+  const iframe=document.createElement("iframe");
+  iframe.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;";
+  document.body.appendChild(iframe);
+  const doc=iframe.contentWindow.document;
+  doc.open();doc.write(html);doc.close();
+  const w=iframe.contentWindow;
+  w.focus();
+  // wacht tot de browser het document heeft gerenderd voordat print() wordt aangeroepen
+  setTimeout(()=>{try{w.print();}catch(e){}setTimeout(()=>iframe.remove(),3000);},350);
+}
+function exportVerslagWord(meeting){
+  const html=verslagDocumentHtml(meeting,"word");
+  // BOM vooraf voor betere herkenning van UTF-8 door Word
+  const blob=new Blob(["﻿"+html],{type:"application/msword;charset=utf-8"});
+  const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=verslagBestandsnaam(meeting,".doc");a.click();URL.revokeObjectURL(url);
 }
 
 // ─── DEFGPT ──────────────────────────────────────────
@@ -215,20 +301,26 @@ async function fetchDefGptModellen(endpoint,key){
 // ─── DEFAULT PROMPTS ─────────────────────────────────
 const DEFAULT_SYSTEM_PROMPT="Je bent een ervaren notulist die professionele, zakelijke Nederlandse vergaderverslagen schrijft. Je verzint geen feiten die niet in de bron staan en je vermeldt onzekerheden expliciet.";
 
-const DEFAULT_VERSLAG_PROMPT=`Zet de onderstaande transcriptie om naar een professioneel Nederlands vergaderverslag. Lever het verslag op in markdown, zodat koppen, bullets en tabellen netjes opmaken.
+const DEFAULT_VERSLAG_PROMPT=`Zet de onderstaande transcriptie om naar een professioneel Nederlands vergaderverslag. Lever het verslag op in zuivere markdown, zodat koppen, bullets en tabellen netjes opmaken.
 
 Vergadering: {{NAAM}}
 Datum: {{DATUM}}
 
-Gebruik ALTIJD deze structuur:
+Opmaakregels voor de markdown:
+- Gebruik '## ' voor de hoofdsecties hieronder (één H2 per sectie). Gebruik geen '# ' (H1) — de titel wordt door de applicatie toegevoegd.
+- Gebruik '### ' voor tussenkopjes binnen een sectie (bijv. per onderwerp in sectie 4).
+- Gebruik '- ' (streepje) voor bullets; genummerde lijsten waar logisch.
+- Houd regels binnen een alinea aan elkaar; scheid alinea's en secties met een lege regel.
+- Tabellen in pipe-notatie met een scheidingsregel eronder.
 
-# 1. Titel en korte context
-Korte alinea met de titel en de context van het overleg: waar ging het over, wat was de aanleiding en het doel.
+Begin het verslag met een korte inleidende alinea (geen kopje) met de context van het overleg: waar ging het over, wat was de aanleiding en het doel.
 
-# 2. Onderwerpenlijst
+Gebruik daarna ALTIJD deze secties (exact deze H2-koppen):
+
+## 1. Onderwerpenlijst
 Benoem de besproken onderwerpen kort als bullet points. Nummer de onderwerpen indien dat logisch past.
 
-# 3. Actielijst
+## 2. Actielijst
 Formuleer actiepunten SMART waar mogelijk, anders zo concreet mogelijk. Gebruik een tabel met deze kolommen:
 
 | Volgnummer | Aanmaakdatum | Overleg | Actiepunt | Eigenaar | Termijn | Afgehandeld | Toelichting |
@@ -239,13 +331,13 @@ Formuleer actiepunten SMART waar mogelijk, anders zo concreet mogelijk. Gebruik 
 - Aanmaakdatum en Termijn in formaat 01-01-26. Afgehandeld standaard op "Nee".
 - Elk actiepunt heeft precies één eigenaar. Indien meerdere betrokkenen aanwezig zijn, wijs één trekker aan als eigenaar en noem overige betrokkenen alleen in de omschrijving.
 
-# 4. Besluiten en uitgangspunten
-Geef de genomen besluiten en de vastgestelde uitgangspunten weer.
+## 3. Besluiten en uitgangspunten
+Geef de genomen besluiten en de vastgestelde uitgangspunten weer, als bullets.
 
-# 5. Volledige uitwerking van de onderwerpen
-Werk de onderwerpen volledig uit, met een duidelijk tussenkopje per onderwerp.
+## 4. Volledige uitwerking van de onderwerpen
+Werk de onderwerpen volledig uit, met een duidelijk '### '-tussenkopje per onderwerp.
 
-# 6. Analyse en advies
+## 5. Analyse en advies
 Sluit af met een beoordeling van de structuur en uitvoering van het overleg op basis van best practices. Betrek daarbij in elk geval: agenda, doel, besluitvorming, eigenaarschap, tijdsbewaking en opvolging. Geef concreet advies.
 
 Stijlregels:
@@ -643,11 +735,13 @@ function MeetingView({meeting,folders,settings,onSave,onDelete}){
                 {editMode&&<button className="btn-hover" onClick={saveEdit} style={btnStyle("var(--success)","#FFF",true)}>✓ Opslaan</button>}
                 {editMode&&<button className="btn-hover" onClick={cancelEdit} style={btnStyle("var(--muted)","var(--text)",true)}>Annuleer</button>}
                 {!editMode&&<button className="btn-hover" onClick={()=>exportVerslagHTML({...meeting,naam,datum})} style={btnStyle("var(--muted)","var(--text)",true)}>⬇ HTML</button>}
+                {!editMode&&<button className="btn-hover" onClick={()=>exportVerslagPDF({...meeting,naam,datum})} style={btnStyle("var(--primary-light)","#FFF",true)}>⬇ PDF</button>}
+                {!editMode&&<button className="btn-hover" onClick={()=>exportVerslagWord({...meeting,naam,datum})} style={btnStyle("var(--success)","#FFF",true)}>⬇ Word</button>}
               </div>
             </div>
             {editMode
               ? <div ref={editRef} className="report-view" contentEditable suppressContentEditableWarning style={{minHeight:300,padding:14,background:"#FFF",borderRadius:8}} dangerouslySetInnerHTML={{__html:reportHtml(meeting)}}/>
-              : <div className="report-view" style={{padding:"0 2px"}} dangerouslySetInnerHTML={{__html:reportHtml(meeting)}}/>
+              : <div className="report-view" style={{background:"#FFF",border:"1px solid var(--border)",borderRadius:8,padding:18,lineHeight:1.6}} dangerouslySetInnerHTML={{__html:reportHtml(meeting)}}/>
             }
             {editMode&&<div style={{fontSize:12,color:"var(--text-muted)",marginTop:10}}>Tip: bewerk besluiten en acties direct in de tekst. Klik daarna op Opslaan.</div>}
           </div>

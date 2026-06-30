@@ -6,7 +6,7 @@ Maak een distributable tarbal aan op de workspace-root na elke nieuwe build.
 
 ```bash
 tar -czf /config/workspace/notulist-pro.tar.gz \
-  -C "/config/workspace/Def Apps/Notulist-Pro" \
+  -C "/config/workspace/DefApps/Notulist-Pro" \
   "notulist-pro.html" \
   "react.min.js" \
   "react-dom.min.js" \

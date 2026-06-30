@@ -1,7 +1,7 @@
 ---
 # MEMORY.md - Notulist-Pro
-**Context**: Part of the federated server structure located at `/config/workspace/Def Apps/Notulist-Pro/`. Generated from `/config/workspace/templates/project-context/MEMORY.md`.
-**Relationship**: Guided by root `/config/workspace/MEMORY.md` and `/config/workspace/Def Apps/MEMORY.md`. Interacts closely with the other 4 local context files.
+**Context**: Part of the federated server structure located at `/config/workspace/DefApps/Notulist-Pro/`. Generated from `/config/workspace/templates/project-context/MEMORY.md`.
+**Relationship**: Guided by root `/config/workspace/MEMORY.md` and `/config/workspace/DefApps/MEMORY.md`. Interacts closely with the other 4 local context files.
 **Purpose**: Active state, architectural pitfalls, and session-drift protection for Notulist-Pro.
 ---
 

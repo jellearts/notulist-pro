@@ -1,7 +1,7 @@
 ---
 # SKILLS.md - Notulist-Pro
-**Context**: Part of the federated server structure located at `/config/workspace/Def Apps/Notulist-Pro/`. Generated from `/config/workspace/templates/project-context/SKILLS.md`.
-**Relationship**: Guided by root `/config/workspace/SKILLS.md` and `/config/workspace/Def Apps/SKILLS.md`. Interacts closely with the other 4 local context files and the `skills/` directory.
+**Context**: Part of the federated server structure located at `/config/workspace/DefApps/Notulist-Pro/`. Generated from `/config/workspace/templates/project-context/SKILLS.md`.
+**Relationship**: Guided by root `/config/workspace/SKILLS.md` and `/config/workspace/DefApps/SKILLS.md`. Interacts closely with the other 4 local context files and the `skills/` directory.
 **Purpose**: Copy-pasteable CLI commands, custom scripts, and runtime recipes for Notulist-Pro. Reusable, topic-specific recipes live as individual files under `skills/` and are indexed here.
 ---
 
@@ -11,7 +11,7 @@
 
 ```bash
 # Open de app in de standaard browser (Edge/Chrome aanbevolen)
-cd "/config/workspace/Def Apps/Notulist-Pro" && xdg-open notulist-pro.html
+cd "/config/workspace/DefApps/Notulist-Pro" && xdg-open notulist-pro.html
 
 # Federated context audit draaien
 cd /config/workspace && bash scripts/check_federated_context.sh

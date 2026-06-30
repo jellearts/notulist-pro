@@ -1,7 +1,7 @@
 ---
 # ARCHITECTURE.md - Notulist-Pro
-**Context**: Part of the federated server structure located at `/config/workspace/Def Apps/Notulist-Pro/`. Generated from `/config/workspace/templates/project-context/ARCHITECTURE.md`.
-**Relationship**: Guided by root `/config/workspace/ARCHITECTURE.md` and `/config/workspace/Def Apps/ARCHITECTURE.md`. Interacts closely with the other 4 local context files.
+**Context**: Part of the federated server structure located at `/config/workspace/DefApps/Notulist-Pro/`. Generated from `/config/workspace/templates/project-context/ARCHITECTURE.md`.
+**Relationship**: Guided by root `/config/workspace/ARCHITECTURE.md` and `/config/workspace/DefApps/ARCHITECTURE.md`. Interacts closely with the other 4 local context files.
 **Purpose**: Dataflow, network topology (Docker networks), and API contracts for Notulist-Pro.
 ---
 

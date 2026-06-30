@@ -1,7 +1,7 @@
 ---
 # CLAUDE.md - Notulist-Pro
-**Context**: Part of the federated server structure located at `/config/workspace/Def Apps/Notulist-Pro/`. Generated from `/config/workspace/templates/project-context/CLAUDE.md`.
-**Relationship**: Guided by root `/config/workspace/CLAUDE.md` and `/config/workspace/Def Apps/CLAUDE.md`. Interacts closely with the other 4 local context files and the `skills/` directory.
+**Context**: Part of the federated server structure located at `/config/workspace/DefApps/Notulist-Pro/`. Generated from `/config/workspace/templates/project-context/CLAUDE.md`.
+**Relationship**: Guided by root `/config/workspace/CLAUDE.md` and `/config/workspace/DefApps/CLAUDE.md`. Interacts closely with the other 4 local context files and the `skills/` directory.
 **Purpose**: Local commands, build steps, environment constraints, and the end-of-session checklist for Notulist-Pro.
 ---
 
@@ -11,7 +11,7 @@ Standalone HTML/React-app voor Mulan. Transcript erin, professioneel Nederlands 
 
 ## Quick Reference
 - GitHub repo: `https://github.com/jellearts/notulist-pro`
-- Project path: `/config/workspace/Def Apps/Notulist-Pro`
+- Project path: `/config/workspace/DefApps/Notulist-Pro`
 - Entrypoint: `notulist-pro.html` (dubbelklik in Edge/Chrome)
 - Data file: door gebruiker gekozen `.json` via File System Access API
 
@@ -42,7 +42,7 @@ Before declaring the session done, run through every item below and confirm:
 12. **Tarbal na build**: Als er een nieuwe versie gebouwd of bijgewerkt is, maak dan een verse distributable aan op de workspace-root (bestaand bestand wordt overschreven):
     ```bash
     tar -czf /config/workspace/notulist-pro.tar.gz \
-      -C "/config/workspace/Def Apps/Notulist-Pro" \
+      -C "/config/workspace/DefApps/Notulist-Pro" \
       "notulist-pro.html" \
       "react.min.js" \
       "react-dom.min.js" \

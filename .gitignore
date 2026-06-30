@@ -1,0 +1,16 @@
+# Secrets / config
+.env
+config.json
+
+# Backups en werkbestanden
+*.bak
+*.bak-*
+archive/*.bak*
+
+# Data
+*.db
+notulist-pro-data.json
+
+# Logs / tijdelijk
+*.log
+__pycache__/
